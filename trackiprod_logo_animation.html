@@ -128,5 +128,18 @@
   });
   obs.observe(document.documentElement,{attributes:true,attributeFilter:['class','data-theme']});
   obs.observe(document.body,{attributes:true,attributeFilter:['class','data-theme']});
+
+  // Relance l'animation depuis le début sur réception d'un postMessage 'replay'
+  window.addEventListener('message', function(e){
+    if(e.data && e.data.type === 'replay'){
+      var existing = document.getElementById('tp-glide-layer');
+      if(existing) existing.remove();
+      animateDraw();
+    }
+    // Gestion du thème (déjà existant)
+    if(e.data && e.data.type === 'set-theme'){
+      updateTheme();
+    }
+  });
 })();
 </script>
