@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flatpickr DateTime</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: transparent; }
+
+    .fp-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .fp-wrap input {
+      width: 100%;
+      padding: 8px 36px 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+
+    /* LIGHT */
+    body.theme-light .fp-wrap input {
+      background: #ffffff;
+      color: #000;
+      border-color: #ccc;
+    }
+    body.theme-light .fp-wrap input::placeholder { color: #888; }
+    body.theme-light svg { stroke: #444; }
+
+    /* DARK */
+    body.theme-dark .fp-wrap input {
+      background: #1A3050;
+      color: #ffffff;
+      border-color: #006B7A;
+    }
+    body.theme-dark .fp-wrap input::placeholder { color: #aaa; }
+    body.theme-dark svg { stroke: #00B4CC; }
+
+    /* Flatpickr dark overrides */
+    body.theme-dark .flatpickr-calendar {
+      background: #1A3050;
+      border-color: #006B7A;
+      color: #fff;
+    }
+    body.theme-dark .flatpickr-day {
+      color: #fff;
+    }
+    body.theme-dark .flatpickr-day:hover,
+    body.theme-dark .flatpickr-day.selected {
+      background: #006B7A;
+      border-color: #006B7A;
+    }
+    body.theme-dark .flatpickr-months,
+    body.theme-dark .flatpickr-weekdays,
+    body.theme-dark span.flatpickr-weekday {
+      background: #1A3050;
+      color: #00B4CC;
+    }
+    body.theme-dark .flatpickr-time input,
+    body.theme-dark .flatpickr-time .flatpickr-am-pm {
+      background: #1A3050;
+      color: #fff;
+    }
+    body.theme-dark .numInputWrapper:hover,
+    body.theme-dark .flatpickr-time input:hover {
+      background: #006B7A;
+    }
+  </style>
+</head>
+<body>
+
+<div class="fp-wrap">
+  <input id="dt-picker" type="text" placeholder="Date & heure..." readonly />
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; right:10px; pointer-events:none;">
+    <path d="M4 13a8 8 0 0 1 7 7 6 6 0 0 0 3-5 9 9 0 0 0 6-8 3 3 0 0 0-3-3 9 9 0 0 0-8 6 6 6 0 0 0-5 3"/>
+    <path d="M7 14a6 6 0 0 0-3 6 6 6 0 0 0 6-3"/>
+    <circle cx="15" cy="9" r="1"/>
+  </svg>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const theme = params.get("theme") || "light";
+  const field = params.get("field") || "datetime";
+
+  document.body.classList.add("theme-" + theme);
+
+  var picker = flatpickr("#dt-picker", {
+    locale: "fr",
+    enableTime: true,
+    dateFormat: "d/m/y - H:i",
+    time_24hr: true,
+    minuteIncrement: 1,
+    allowInput: false,
+    onClose: function(selectedDates, dateStr, instance) {
+      window.parent.postMessage({
+        type: "datetime-selected",
+        field: field,
+        value: dateStr,
+        isoValue: selectedDates[0] ? selectedDates[0].toISOString() : null
+      }, "*");
+    }
+  });
+
+  document.getElementById("dt-picker").addEventListener("mousedown", function(e) {
+    e.preventDefault();
+    picker.open();
+  });
+
+  // Écoute aussi les changements de thème en temps réel depuis WeWeb
+  window.addEventListener("message", function(e) {
+    if (e.data.type === "set-theme") {
+      document.body.classList.remove("theme-light", "theme-dark");
+      document.body.classList.add("theme-" + e.data.theme);
+    }
+  });
+</script>
+
+</body>
+</html>
