@@ -61,7 +61,7 @@
     }
 
     .picker-wrap {
-      display: flex; gap: 24px; align-items: flex-start;
+      display: flex; gap: 48px; align-items: flex-start;
       padding: 20px;
     }
 
@@ -82,7 +82,7 @@
     .day.today { border-color: var(--color-day); opacity: 0.7; }
     .day.selected { background: var(--color-selected-bg); border-color: var(--color-selected-border); color: white; font-weight: 700; }
 
-    .sep { width: 1px; background: var(--color-sep); align-self: stretch; }
+    .sep { width: 3px; background: var(--color-sep); align-self: stretch; }
 
     .time-picker { display: flex; flex-direction: column; align-items: center; }
     .drums { display: flex; align-items: flex-start; gap: 12px; }
@@ -107,7 +107,7 @@
       height: 48px; border: 1px solid var(--visor-border);
     }
     .drum-track::before, .drum-track::after {
-      content: ''; position: absolute; left: 0; right: 0; height: 8px; z-index: 3; pointer-events: none;
+      display: none /* zone blanche fin rouleaux : content: ''; position: absolute; left: 0; right: 0; height: 8px; z-index: 3; pointer-events: none;*/
     }
     .drum-track::before { top: 0; background: linear-gradient(to bottom, var(--gradient-from), transparent); }
     .drum-track::after  { bottom: 0; background: linear-gradient(to top, var(--gradient-from), transparent); }
