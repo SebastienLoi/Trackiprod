@@ -2,137 +2,370 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Flatpickr DateTime</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DateTime Picker</title>
   <style>
-    body { margin: 0; font-family: sans-serif; background: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .fp-wrap {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      width: 100%;
-    }
-
-    .fp-wrap input {
-      width: 100%;
-      padding: 8px 36px 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
-      box-sizing: border-box;
-      cursor: pointer;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 1rem;
+      transition: background 0.3s;
     }
 
-    /* LIGHT */
-    body.theme-light .fp-wrap input {
-      background: #ffffff;
-      color: #000;
-      border-color: #ccc;
+    /* THÈMES */
+    body.theme-light {
+      background: #F0F2F7;
+      --bg-main: #ffffff;
+      --bg-visor: #E8F0FA;
+      --bg-arrow: #E2E6F0;
+      --color-text: #1A3A5C;
+      --color-sub1: #4A6A8A;
+      --color-sub2: #8AA0B8;
+      --color-sub3: #C0CCD8;
+      --color-sep: #D1D5DB;
+      --color-day: #1A3A5C;
+      --color-day-border: rgba(26,58,92,0.25);
+      --color-day-hover: rgba(26,58,92,0.1);
+      --color-selected-bg: #1A3A5C;
+      --color-selected-border: #1A3A5C;
+      --color-month: #1A3A5C;
+      --color-nav: #6B7280;
+      --color-colon: #6B7280;
+      --color-arrow-icon: #4A6A8A;
+      --visor-bg: #C8D8EC;
+      --visor-border: rgba(26,58,92,0.5);
+      --gradient-from: #F0F2F7;
+      --drum-line-bg: #C8D8EC;
     }
-    body.theme-light .fp-wrap input::placeholder { color: #1A3A5C; }
-    body.theme-light svg { stroke: #444; }
 
-    /* DARK */
-    body.theme-dark .fp-wrap input {
-      background: #1A3050;
-      color: #ffffff;
-      border-color: #006B7A;
+    body.theme-dark {
+      background: #0F1923;
+      --bg-main: #1C2A3A;
+      --bg-visor: #243B55;
+      --bg-arrow: #243B55;
+      --color-text: white;
+      --color-sub1: #8B9BB4;
+      --color-sub2: #4B5A6E;
+      --color-sub3: #2D3A4A;
+      --color-sep: #2D3F52;
+      --color-day: white;
+      --color-day-border: rgba(255,255,255,0.25);
+      --color-day-hover: rgba(255,255,255,0.1);
+      --color-selected-bg: #3B82F6;
+      --color-selected-border: #3B82F6;
+      --color-month: white;
+      --color-nav: #9CA3AF;
+      --color-colon: #4B5563;
+      --color-arrow-icon: #9CA3AF;
+      --visor-bg: #243B55;
+      --visor-border: rgba(59,130,246,0.6);
+      --gradient-from: #1C2A3A;
+      --drum-line-bg: #243B55;
     }
-    body.theme-dark .fp-wrap input::placeholder { color: #00B4CC; }
-    body.theme-dark svg { stroke: #00B4CC; }
 
-    /* Flatpickr dark overrides */
-    body.theme-dark .flatpickr-calendar {
-      background: #1A3050;
-      border-color: #006B7A;
-      color: #fff;
+    .picker-wrap {
+      display: flex; gap: 24px; align-items: flex-start;
+      background: var(--bg-main); border-radius: 20px; padding: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     }
-    body.theme-dark .flatpickr-day {
-      color: #fff;
+
+    /* CALENDRIER */
+    .calendar { min-width: 230px; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .cal-header .month { font-weight: 700; font-size: 16px; color: var(--color-month); }
+    .cal-header button { background: none; border: none; cursor: pointer; color: var(--color-nav); font-size: 20px; padding: 0 4px; transition: color 0.15s; }
+    .cal-header button:hover { color: var(--color-month); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .day-name { font-size: 11px; color: var(--color-sub2); font-weight: 600; padding: 4px 0 8px; }
+    .day {
+      font-size: 13px; border-radius: 6px; cursor: pointer; color: var(--color-day);
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      margin: auto; border: 1.5px solid var(--color-day-border); transition: all 0.15s;
     }
-    body.theme-dark .flatpickr-day:hover,
-    body.theme-dark .flatpickr-day.selected {
-      background: #006B7A;
-      border-color: #006B7A;
+    .day:hover { border-color: var(--color-day); background: var(--color-day-hover); }
+    .day.empty { cursor: default; border-color: transparent; }
+    .day.today { border-color: var(--color-day); opacity: 0.7; }
+    .day.selected { background: var(--color-selected-bg); border-color: var(--color-selected-border); color: white; font-weight: 700; }
+
+    /* SÉPARATEUR */
+    .sep { width: 1px; background: var(--color-sep); align-self: stretch; }
+
+    /* ROULEAUX */
+    .time-picker { display: flex; flex-direction: column; align-items: center; }
+    .drums { display: flex; align-items: flex-start; gap: 12px; }
+    .drum-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+    .drum-arrow {
+      background: var(--bg-arrow); border: none; border-radius: 8px;
+      width: 60px; height: 28px; cursor: pointer; color: var(--color-arrow-icon);
+      font-size: 16px; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; user-select: none; flex-shrink: 0;
     }
-    body.theme-dark .flatpickr-months,
-    body.theme-dark .flatpickr-weekdays,
-    body.theme-dark span.flatpickr-weekday {
-      background: #1A3050;
-      color: #00B4CC;
+    .drum-arrow:hover { background: #3B82F6; color: white; }
+
+    .drum-track {
+      position: relative; height: 200px; width: 60px;
+      overflow: hidden; cursor: ns-resize; user-select: none;
     }
-    body.theme-dark .flatpickr-time input,
-    body.theme-dark .flatpickr-time .flatpickr-am-pm {
-      background: #1A3050;
-      color: #fff;
+    .drum-line {
+      position: absolute; left: 4px; right: 4px; z-index: 1; pointer-events: none;
+      border-radius: 10px; background: var(--drum-line-bg);
+      top: 50%; transform: translateY(-50%);
+      height: 48px; border: 1px solid var(--visor-border);
     }
-    body.theme-dark .numInputWrapper:hover,
-    body.theme-dark .flatpickr-time input:hover {
-      background: #006B7A;
+    .drum-track::before, .drum-track::after {
+      content: ''; position: absolute; left: 0; right: 0; height: 8px; z-index: 3; pointer-events: none;
     }
+    .drum-track::before { top: 0; background: linear-gradient(to bottom, var(--gradient-from), transparent); }
+    .drum-track::after  { bottom: 0; background: linear-gradient(to top, var(--gradient-from), transparent); }
+    .drum-items {
+      display: flex; flex-direction: column; align-items: center;
+      position: absolute; width: 100%; z-index: 2;
+    }
+    .drum-item {
+      height: 40px; width: 60px; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; flex-shrink: 0; cursor: pointer;
+    }
+
+    .drum-colon {
+      font-size: 32px; font-weight: 700; color: var(--color-colon);
+      height: 32px; line-height: 32px; flex-shrink: 0;
+      margin-top: calc(28px + 6px + 100px - 16px);
+    }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 16px;
+      display: flex; justify-content: flex-end; gap: 10px; width: 100%;
+    }
+    .btn-cancel {
+      background: none; border: 1px solid var(--color-sep); color: var(--color-sub1);
+      border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; transition: all 0.15s;
+    }
+    .btn-cancel:hover { border-color: var(--color-sub1); }
+    .btn-validate {
+      background: #3B82F6; border: none; color: white;
+      border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-validate:hover { background: #2563EB; }
+
+    /* Wrapper global */
+    .wrapper { display: flex; flex-direction: column; gap: 12px; }
   </style>
 </head>
 <body>
 
-<div class="fp-wrap">
-  <input id="dt-picker" type="text" placeholder="Début réel..." readonly />
-  <svg id="icon-field" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; right:10px; pointer-events:none;">
-    <path d="M4 13a8 8 0 0 1 7 7 6 6 0 0 0 3-5 9 9 0 0 0 6-8 3 3 0 0 0-3-3 9 9 0 0 0-8 6 6 6 0 0 0-5 3"/>
-    <path d="M7 14a6 6 0 0 0-3 6 6 6 0 0 0 6-3"/>
-    <circle cx="15" cy="9" r="1"/>
-</svg>
+<div class="wrapper">
+  <div class="picker-wrap">
+    <!-- CALENDRIER -->
+    <div class="calendar">
+      <div class="cal-header">
+        <button onclick="prevMonth()">‹</button>
+        <span class="month" id="month-label"></span>
+        <button onclick="nextMonth()">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div>
+        <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- ROULEAUX -->
+    <div class="time-picker">
+      <div class="drums">
+        <div class="drum-wrap">
+          <button class="drum-arrow" onclick="changeH(-1)">▲</button>
+          <div class="drum-track" id="h-track">
+            <div class="drum-line"></div>
+            <div class="drum-items" id="h-items"></div>
+          </div>
+          <button class="drum-arrow" onclick="changeH(1)">▼</button>
+        </div>
+        <div class="drum-colon">:</div>
+        <div class="drum-wrap">
+          <button class="drum-arrow" onclick="changeM(-1)">▲</button>
+          <div class="drum-track" id="m-track">
+            <div class="drum-line"></div>
+            <div class="drum-items" id="m-items"></div>
+          </div>
+          <button class="drum-arrow" onclick="changeM(1)">▼</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <button class="btn-cancel" onclick="cancelPicker()">Annuler</button>
+    <button class="btn-validate" onclick="validatePicker()">Valider</button>
+  </div>
 </div>
 
 <script>
-  const params = new URLSearchParams(window.location.search);
-  const theme = params.get("theme") || "light";
-  const field = params.get("field") || "datetime";
+  // Params URL
+  var params = new URLSearchParams(window.location.search);
+  var theme = params.get('theme') || 'dark';
+  var field = params.get('field') || 'debut_reel';
 
-  document.body.classList.add("theme-" + theme);
+  document.body.classList.add('theme-' + theme);
 
-// Icône et placeholder selon le champ
-  if (field === "fin_reelle") {
-    document.getElementById("dt-picker").placeholder = "Fin réelle...";
-    document.getElementById("icon-field").innerHTML = `
-      <path d="M5 5a5 5 0 0 1 7 0 5 5 0 0 0 7 0v9a5 5 0 0 1-7 0 5 5 0 0 0-7 0v-9z"/>
-      <line x1="5" y1="21" x2="5" y2="14"/>
-    `;
-  } else {
-    document.getElementById("dt-picker").placeholder = "Début réel...";
+  // État
+  var today = new Date();
+  var cur = new Date(today);
+  var selected = new Date(today);
+  var h = today.getHours();
+  var m = today.getMinutes();
+  var ITEM_H = 40;
+  var RANGE = 4;
+  var DRAG_RANGE = 8;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function getTopOffset(trackH, range) {
+    return (trackH / 2) - (ITEM_H / 2) - range * ITEM_H;
   }
-  
-  var picker = flatpickr("#dt-picker", {
-    locale: "fr",
-    enableTime: true,
-    dateFormat: "d/m/y - H:i",
-    time_24hr: true,
-    minuteIncrement: 1,
-    allowInput: false,
-    onClose: function(selectedDates, dateStr, instance) {
-      window.parent.postMessage({
-        type: "datetime-selected",
-        field: field,
-        value: dateStr,
-        isoValue: selectedDates[0] ? selectedDates[0].toISOString() : null
-      }, "*");
+
+  function styleForDist(dist) {
+    if (dist < 0.5)      return { fontSize: '30px', color: 'var(--color-text)',  opacity: '1',    fw: '800' };
+    else if (dist < 1.5) return { fontSize: '20px', color: 'var(--color-sub1)', opacity: '0.85', fw: '700' };
+    else if (dist < 2.5) return { fontSize: '15px', color: 'var(--color-sub2)', opacity: '0.55', fw: '700' };
+    else if (dist < 3.5) return { fontSize: '12px', color: 'var(--color-sub3)', opacity: '0.3',  fw: '700' };
+    else                  return { fontSize: '10px', color: 'transparent',       opacity: '0',    fw: '700' };
+  }
+
+  function renderDrum(id, val, max) {
+    var el = document.getElementById(id);
+    var track = document.getElementById(id.replace('-items', '-track'));
+    el.innerHTML = '';
+    var topOffset = getTopOffset(track.clientHeight, RANGE);
+    for (var o = -RANGE; o <= RANGE; o++) {
+      var v = ((val + o) % max + max) % max;
+      var div = document.createElement('div');
+      div.className = 'drum-item';
+      div.textContent = pad(v);
+      var s = styleForDist(Math.abs(o));
+      div.style.fontSize = s.fontSize; div.style.color = s.color;
+      div.style.opacity = s.opacity; div.style.fontWeight = s.fw;
+      (function(vv, eid){
+        div.addEventListener('click', function(){
+          if (eid === 'h-items') { h = vv; renderDrum('h-items', h, 24); }
+          else { m = vv; renderDrum('m-items', m, 60); }
+        });
+      })(v, id);
+      el.appendChild(div);
+    }
+    el.style.transform = 'translateY(' + topOffset + 'px)';
+  }
+
+  function renderDragFrame(id, val, max, offsetPx) {
+    var el = document.getElementById(id);
+    var track = document.getElementById(id.replace('-items', '-track'));
+    var trackH = track.clientHeight;
+    var centerY = trackH / 2;
+    el.innerHTML = '';
+    var topOffset = getTopOffset(trackH, DRAG_RANGE);
+    for (var o = -DRAG_RANGE; o <= DRAG_RANGE; o++) {
+      var v = ((val + o) % max + max) % max;
+      var div = document.createElement('div');
+      div.className = 'drum-item';
+      div.textContent = pad(v);
+      var itemCenterY = topOffset + offsetPx + (o + DRAG_RANGE) * ITEM_H + ITEM_H / 2;
+      var distFromCenter = Math.abs(itemCenterY - centerY);
+      var distInItems = distFromCenter / ITEM_H;
+      var s = styleForDist(distInItems);
+      div.style.fontSize = s.fontSize; div.style.color = s.color;
+      div.style.opacity = s.opacity; div.style.fontWeight = s.fw;
+      el.appendChild(div);
+    }
+    el.style.transform = 'translateY(' + (topOffset + offsetPx) + 'px)';
+  }
+
+  function changeH(d){ h = (h + d + 24) % 24; renderDrum('h-items', h, 24); }
+  function changeM(d){ m = (m + d + 60) % 60; renderDrum('m-items', m, 60); }
+
+  document.getElementById('h-track').addEventListener('wheel', function(e){ e.preventDefault(); changeH(e.deltaY > 0 ? 1 : -1); }, {passive:false});
+  document.getElementById('m-track').addEventListener('wheel', function(e){ e.preventDefault(); changeM(e.deltaY > 0 ? 1 : -1); }, {passive:false});
+
+  function addDrag(trackId) {
+    var track = document.getElementById(trackId);
+    var isH = trackId === 'h-track';
+    var startY, dragging = false, liveOffset = 0;
+    track.addEventListener('mousedown', function(e){ dragging = true; startY = e.clientY; liveOffset = 0; e.preventDefault(); });
+    window.addEventListener('mousemove', function(e){
+      if (!dragging) return;
+      liveOffset = e.clientY - startY;
+      renderDragFrame(isH ? 'h-items' : 'm-items', isH ? h : m, isH ? 24 : 60, liveOffset);
+    });
+    window.addEventListener('mouseup', function(){
+      if (!dragging) return;
+      dragging = false;
+      var steps = -Math.round(liveOffset / ITEM_H);
+      if (isH) { h = (h + steps % 24 + 24) % 24; renderDrum('h-items', h, 24); }
+      else { m = (m + steps % 60 + 60) % 60; renderDrum('m-items', m, 60); }
+    });
+  }
+
+  addDrag('h-track');
+  addDrag('m-track');
+
+  // CALENDRIER
+  function renderCalendar(){
+    var grid = document.getElementById('cal-grid');
+    grid.querySelectorAll('.day,.empty').forEach(function(c){ c.remove(); });
+    var y = cur.getFullYear(), mo = cur.getMonth();
+    var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    document.getElementById('month-label').textContent = months[mo] + ' ' + y;
+    var first = new Date(y, mo, 1).getDay(); first = first===0?6:first-1;
+    var days = new Date(y, mo+1, 0).getDate();
+    for(var i=0;i<first;i++){ var e=document.createElement('div'); e.className='day empty'; grid.appendChild(e); }
+    for(var d=1;d<=days;d++){
+      var el=document.createElement('div'); el.className='day'; el.textContent=d;
+      if(d===today.getDate()&&mo===today.getMonth()&&y===today.getFullYear()) el.classList.add('today');
+      if(d===selected.getDate()&&mo===selected.getMonth()&&y===selected.getFullYear()) el.classList.add('selected');
+      (function(day){ el.addEventListener('click',function(){ selected=new Date(y,mo,day); renderCalendar(); }); })(d);
+      grid.appendChild(el);
+    }
+  }
+
+  function prevMonth(){ cur.setMonth(cur.getMonth()-1); renderCalendar(); }
+  function nextMonth(){ cur.setMonth(cur.getMonth()+1); renderCalendar(); }
+
+  // VALIDER
+  function validatePicker() {
+    var result = new Date(
+      selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m, 0
+    );
+    var display = pad(selected.getDate()) + '/' + pad(selected.getMonth()+1) + '/' +
+      String(selected.getFullYear()).slice(2) + ' - ' + pad(h) + ':' + pad(m);
+    window.parent.postMessage({
+      type: 'datetime-selected',
+      field: field,
+      value: display,
+      isoValue: result.toISOString()
+    }, '*');
+  }
+
+  // ANNULER
+  function cancelPicker() {
+    window.parent.postMessage({ type: 'datetime-cancelled', field: field }, '*');
+  }
+
+  // Écoute changement de thème depuis WeWeb
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'set-theme') {
+      document.body.classList.remove('theme-light', 'theme-dark');
+      document.body.classList.add('theme-' + e.data.theme);
     }
   });
 
-  document.getElementById("dt-picker").addEventListener("mousedown", function(e) {
-    e.preventDefault();
-    picker.open();
-  });
-
-  // Écoute aussi les changements de thème en temps réel depuis WeWeb
-  window.addEventListener("message", function(e) {
-    if (e.data.type === "set-theme") {
-      document.body.classList.remove("theme-light", "theme-dark");
-      document.body.classList.add("theme-" + e.data.theme);
-    }
-  });
+  renderCalendar();
+  renderDrum('h-items', h, 24);
+  renderDrum('m-items', m, 60);
 </script>
 
 </body>
