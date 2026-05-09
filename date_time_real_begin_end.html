@@ -14,12 +14,9 @@
       transition: background 0.3s;
     }
 
-    /* THÈMES */
     body.theme-light {
       background: #F0F2F7;
       --bg-main: #ffffff;
-      --bg-visor: #E8F0FA;
-      --bg-arrow: #E2E6F0;
       --color-text: #1A3A5C;
       --color-sub1: #4A6A8A;
       --color-sub2: #8AA0B8;
@@ -34,7 +31,7 @@
       --color-nav: #6B7280;
       --color-colon: #6B7280;
       --color-arrow-icon: #4A6A8A;
-      --visor-bg: #C8D8EC;
+      --bg-arrow: #E2E6F0;
       --visor-border: rgba(26,58,92,0.5);
       --gradient-from: #F0F2F7;
       --drum-line-bg: #C8D8EC;
@@ -43,8 +40,6 @@
     body.theme-dark {
       background: #0F1923;
       --bg-main: #1C2A3A;
-      --bg-visor: #243B55;
-      --bg-arrow: #243B55;
       --color-text: white;
       --color-sub1: #8B9BB4;
       --color-sub2: #4B5A6E;
@@ -59,7 +54,7 @@
       --color-nav: #9CA3AF;
       --color-colon: #4B5563;
       --color-arrow-icon: #9CA3AF;
-      --visor-bg: #243B55;
+      --bg-arrow: #243B55;
       --visor-border: rgba(59,130,246,0.6);
       --gradient-from: #1C2A3A;
       --drum-line-bg: #243B55;
@@ -71,7 +66,6 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     }
 
-    /* CALENDRIER */
     .calendar { min-width: 230px; }
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .cal-header .month { font-weight: 700; font-size: 16px; color: var(--color-month); }
@@ -89,10 +83,8 @@
     .day.today { border-color: var(--color-day); opacity: 0.7; }
     .day.selected { background: var(--color-selected-bg); border-color: var(--color-selected-border); color: white; font-weight: 700; }
 
-    /* SÉPARATEUR */
     .sep { width: 1px; background: var(--color-sep); align-self: stretch; }
 
-    /* ROULEAUX */
     .time-picker { display: flex; flex-direction: column; align-items: center; }
     .drums { display: flex; align-items: flex-start; gap: 12px; }
     .drum-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -129,92 +121,73 @@
       justify-content: center; font-weight: 700; flex-shrink: 0; cursor: pointer;
     }
 
+    /* Input éditable au centre */
+    .drum-input {
+      width: 52px; height: 36px;
+      background: transparent; border: none; outline: none;
+      font-size: 30px; font-weight: 800;
+      color: var(--color-text);
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      cursor: text;
+      -moz-appearance: textfield;
+    }
+    .drum-input::-webkit-outer-spin-button,
+    .drum-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
     .drum-colon {
       font-size: 32px; font-weight: 700; color: var(--color-colon);
       height: 32px; line-height: 32px; flex-shrink: 0;
       margin-top: calc(28px + 6px + 100px - 16px);
     }
-
-    /* FOOTER */
-    .footer {
-      margin-top: 16px;
-      display: flex; justify-content: flex-end; gap: 10px; width: 100%;
-    }
-    .btn-cancel {
-      background: none; border: 1px solid var(--color-sep); color: var(--color-sub1);
-      border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; transition: all 0.15s;
-    }
-    .btn-cancel:hover { border-color: var(--color-sub1); }
-    .btn-validate {
-      background: #3B82F6; border: none; color: white;
-      border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; font-weight: 600;
-      transition: background 0.15s;
-    }
-    .btn-validate:hover { background: #2563EB; }
-
-    /* Wrapper global */
-    .wrapper { display: flex; flex-direction: column; gap: 12px; }
   </style>
 </head>
 <body>
 
-<div class="wrapper">
-  <div class="picker-wrap">
-    <!-- CALENDRIER -->
-    <div class="calendar">
-      <div class="cal-header">
-        <button onclick="prevMonth()">‹</button>
-        <span class="month" id="month-label"></span>
-        <button onclick="nextMonth()">›</button>
-      </div>
-      <div class="cal-grid" id="cal-grid">
-        <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div>
-        <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
-      </div>
+<div class="picker-wrap">
+  <div class="calendar">
+    <div class="cal-header">
+      <button onclick="prevMonth()">‹</button>
+      <span class="month" id="month-label"></span>
+      <button onclick="nextMonth()">›</button>
     </div>
-
-    <div class="sep"></div>
-
-    <!-- ROULEAUX -->
-    <div class="time-picker">
-      <div class="drums">
-        <div class="drum-wrap">
-          <button class="drum-arrow" onclick="changeH(-1)">▲</button>
-          <div class="drum-track" id="h-track">
-            <div class="drum-line"></div>
-            <div class="drum-items" id="h-items"></div>
-          </div>
-          <button class="drum-arrow" onclick="changeH(1)">▼</button>
-        </div>
-        <div class="drum-colon">:</div>
-        <div class="drum-wrap">
-          <button class="drum-arrow" onclick="changeM(-1)">▲</button>
-          <div class="drum-track" id="m-track">
-            <div class="drum-line"></div>
-            <div class="drum-items" id="m-items"></div>
-          </div>
-          <button class="drum-arrow" onclick="changeM(1)">▼</button>
-        </div>
-      </div>
+    <div class="cal-grid" id="cal-grid">
+      <div class="day-name">L</div><div class="day-name">M</div><div class="day-name">M</div>
+      <div class="day-name">J</div><div class="day-name">V</div><div class="day-name">S</div><div class="day-name">D</div>
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <div class="footer">
-    <button class="btn-cancel" onclick="cancelPicker()">Annuler</button>
-    <button class="btn-validate" onclick="validatePicker()">Valider</button>
+  <div class="sep"></div>
+
+  <div class="time-picker">
+    <div class="drums">
+      <div class="drum-wrap">
+        <button class="drum-arrow" onclick="changeH(-1)">▲</button>
+        <div class="drum-track" id="h-track">
+          <div class="drum-line"></div>
+          <div class="drum-items" id="h-items"></div>
+        </div>
+        <button class="drum-arrow" onclick="changeH(1)">▼</button>
+      </div>
+      <div class="drum-colon">:</div>
+      <div class="drum-wrap">
+        <button class="drum-arrow" onclick="changeM(-1)">▲</button>
+        <div class="drum-track" id="m-track">
+          <div class="drum-line"></div>
+          <div class="drum-items" id="m-items"></div>
+        </div>
+        <button class="drum-arrow" onclick="changeM(1)">▼</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-  // Params URL
   var params = new URLSearchParams(window.location.search);
   var theme = params.get('theme') || 'dark';
   var field = params.get('field') || 'debut_reel';
-
   document.body.classList.add('theme-' + theme);
 
-  // État
   var today = new Date();
   var cur = new Date(today);
   var selected = new Date(today);
@@ -238,26 +211,86 @@
     else                  return { fontSize: '10px', color: 'transparent',       opacity: '0',    fw: '700' };
   }
 
+  function makeInput(isHours) {
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'drum-input';
+    inp.value = pad(isHours ? h : m);
+    inp.min = 0;
+    inp.max = isHours ? 23 : 59;
+    // Sélectionne tout au focus
+    inp.addEventListener('focus', function(){ this.select(); });
+    // Valide à chaque frappe
+    inp.addEventListener('input', function() {
+      var val = parseInt(this.value, 10);
+      var max = isHours ? 23 : 59;
+      if (isNaN(val)) return;
+      if (val < 0) val = 0;
+      if (val > max) val = max;
+      if (isHours) { h = val; }
+      else { m = val; }
+    });
+    // Valide et re-render au blur
+    inp.addEventListener('blur', function() {
+      var val = parseInt(this.value, 10);
+      var max = isHours ? 23 : 59;
+      if (isNaN(val) || val < 0) val = 0;
+      if (val > max) val = max;
+      if (isHours) { h = val; renderDrum('h-items', h, 24); }
+      else { m = val; renderDrum('m-items', m, 60); }
+    });
+    // Entrée = blur
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') this.blur();
+      // Tab passe à l'autre champ
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var otherId = isHours ? 'm-items' : 'h-items';
+        var other = document.getElementById(otherId);
+        if (other) {
+          var otherInp = other.querySelector('.drum-input');
+          if (otherInp) otherInp.focus();
+        }
+      }
+    });
+    return inp;
+  }
+
   function renderDrum(id, val, max) {
     var el = document.getElementById(id);
     var track = document.getElementById(id.replace('-items', '-track'));
+    var isHours = id === 'h-items';
     el.innerHTML = '';
     var topOffset = getTopOffset(track.clientHeight, RANGE);
+
     for (var o = -RANGE; o <= RANGE; o++) {
       var v = ((val + o) % max + max) % max;
-      var div = document.createElement('div');
-      div.className = 'drum-item';
-      div.textContent = pad(v);
-      var s = styleForDist(Math.abs(o));
-      div.style.fontSize = s.fontSize; div.style.color = s.color;
-      div.style.opacity = s.opacity; div.style.fontWeight = s.fw;
-      (function(vv, eid){
-        div.addEventListener('click', function(){
-          if (eid === 'h-items') { h = vv; renderDrum('h-items', h, 24); }
-          else { m = vv; renderDrum('m-items', m, 60); }
-        });
-      })(v, id);
-      el.appendChild(div);
+      var isCenter = (o === 0);
+
+      if (isCenter) {
+        // Item central = input éditable
+        var wrapper = document.createElement('div');
+        wrapper.className = 'drum-item';
+        wrapper.style.cursor = 'text';
+        var inp = makeInput(isHours);
+        wrapper.appendChild(inp);
+        el.appendChild(wrapper);
+      } else {
+        var div = document.createElement('div');
+        div.className = 'drum-item';
+        div.textContent = pad(v);
+        var s = styleForDist(Math.abs(o));
+        div.style.fontSize = s.fontSize; div.style.color = s.color;
+        div.style.opacity = s.opacity; div.style.fontWeight = s.fw;
+        div.style.cursor = 'pointer';
+        (function(vv, eid){
+          div.addEventListener('click', function(){
+            if (eid === 'h-items') { h = vv; renderDrum('h-items', h, 24); }
+            else { m = vv; renderDrum('m-items', m, 60); }
+          });
+        })(v, id);
+        el.appendChild(div);
+      }
     }
     el.style.transform = 'translateY(' + topOffset + 'px)';
   }
@@ -295,7 +328,13 @@
     var track = document.getElementById(trackId);
     var isH = trackId === 'h-track';
     var startY, dragging = false, liveOffset = 0;
-    track.addEventListener('mousedown', function(e){ dragging = true; startY = e.clientY; liveOffset = 0; e.preventDefault(); });
+
+    track.addEventListener('mousedown', function(e){
+      // Ne pas déclencher le drag si on clique sur l'input
+      if (e.target.tagName === 'INPUT') return;
+      dragging = true; startY = e.clientY; liveOffset = 0;
+      e.preventDefault();
+    });
     window.addEventListener('mousemove', function(e){
       if (!dragging) return;
       liveOffset = e.clientY - startY;
@@ -313,7 +352,6 @@
   addDrag('h-track');
   addDrag('m-track');
 
-  // CALENDRIER
   function renderCalendar(){
     var grid = document.getElementById('cal-grid');
     grid.querySelectorAll('.day,.empty').forEach(function(c){ c.remove(); });
@@ -335,38 +373,24 @@
   function prevMonth(){ cur.setMonth(cur.getMonth()-1); renderCalendar(); }
   function nextMonth(){ cur.setMonth(cur.getMonth()+1); renderCalendar(); }
 
-  // VALIDER
-  function validatePicker() {
-    var result = new Date(
-      selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m, 0
-    );
+  window.validatePicker = function() {
+    var result = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m, 0);
     var display = pad(selected.getDate()) + '/' + pad(selected.getMonth()+1) + '/' +
       String(selected.getFullYear()).slice(2) + ' - ' + pad(h) + ':' + pad(m);
-    window.parent.postMessage({
-      type: 'datetime-selected',
-      field: field,
-      value: display,
-      isoValue: result.toISOString()
-    }, '*');
-  }
+    window.parent.postMessage({ type: 'datetime-selected', field: field, value: display, isoValue: result.toISOString() }, '*');
+  };
 
-  // ANNULER
-  function cancelPicker() {
-    window.parent.postMessage({ type: 'datetime-cancelled', field: field }, '*');
-  }
-
-  // Écoute changement de thème depuis WeWeb
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'set-theme') {
       document.body.classList.remove('theme-light', 'theme-dark');
       document.body.classList.add('theme-' + e.data.theme);
     }
+    if (e.data && e.data.type === 'validate') { window.validatePicker(); }
   });
 
   renderCalendar();
   renderDrum('h-items', h, 24);
   renderDrum('m-items', m, 60);
 </script>
-
 </body>
 </html>
