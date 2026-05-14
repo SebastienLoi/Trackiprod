@@ -11,11 +11,10 @@
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex; justify-content: center; align-items: center;
       min-height: 100vh; padding: 1rem;
-      transition: background 0.3s;
+      background: transparent;
     }
 
     body.theme-light {
-      background: transparent;
       --bg-main: #E2E6F0;
       --color-text: #1A3A5C;
       --color-sub1: #4A6A8A;
@@ -33,12 +32,11 @@
       --color-arrow-icon: #4A6A8A;
       --bg-arrow: #E2E6F0;
       --visor-border: rgba(26,58,92,0.5);
-      --gradient-from: #E2E6F0;
+      --gradient-from: transparent;
       --drum-line-bg: #C8D8EC;
     }
 
     body.theme-dark {
-      background: transparent;
       --bg-main: #1E2A3A;
       --color-text: white;
       --color-sub1: #8B9BB4;
@@ -56,7 +54,7 @@
       --color-arrow-icon: #9CA3AF;
       --bg-arrow: #243B55;
       --visor-border: rgba(59,130,246,0.6);
-      --gradient-from: #1E2A3A;
+      --gradient-from: transparent;
       --drum-line-bg: #243B55;
     }
 
@@ -106,11 +104,8 @@
       top: 50%; transform: translateY(-50%);
       height: 48px; border: 1px solid var(--visor-border);
     }
-    .drum-track::before, .drum-track::after {
-      display: none /* zone blanche fin rouleaux : content: ''; position: absolute; left: 0; right: 0; height: 8px; z-index: 3; pointer-events: none;*/
-    }
-    .drum-track::before { top: 0; background: linear-gradient(to bottom, var(--gradient-from), transparent); }
-    .drum-track::after  { bottom: 0; background: linear-gradient(to top, var(--gradient-from), transparent); }
+    .drum-track::before, .drum-track::after { display: none; }
+
     .drum-items {
       display: flex; flex-direction: column; align-items: center;
       position: absolute; width: 100%; z-index: 2;
@@ -120,7 +115,6 @@
       justify-content: center; font-weight: 700; flex-shrink: 0; cursor: pointer;
     }
 
-    /* Input éditable au centre */
     .drum-input {
       width: 52px; height: 36px;
       background: transparent; border: none; outline: none;
@@ -139,9 +133,20 @@
       height: 32px; line-height: 32px; flex-shrink: 0;
       margin-top: calc(28px + 6px + 100px - 16px);
     }
+
+    /* Alerte validation */
+    .alert-box {
+      display: none; position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
+      border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600;
+      z-index: 999; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .alert-box.show { display: block; }
   </style>
 </head>
 <body>
+
+<div class="alert-box" id="alert-box"></div>
 
 <div class="picker-wrap">
   <div class="calendar">
@@ -185,6 +190,8 @@
   var params = new URLSearchParams(window.location.search);
   var theme = params.get('theme') || 'dark';
   var field = params.get('field') || 'debut_reel';
+  var debutParam = params.get('debut') || '';
+
   document.body.classList.add('theme-' + theme);
 
   var today = new Date();
@@ -217,19 +224,15 @@
     inp.value = pad(isHours ? h : m);
     inp.min = 0;
     inp.max = isHours ? 23 : 59;
-    // Sélectionne tout au focus
     inp.addEventListener('focus', function(){ this.select(); });
-    // Valide à chaque frappe
     inp.addEventListener('input', function() {
       var val = parseInt(this.value, 10);
       var max = isHours ? 23 : 59;
       if (isNaN(val)) return;
       if (val < 0) val = 0;
       if (val > max) val = max;
-      if (isHours) { h = val; }
-      else { m = val; }
+      if (isHours) h = val; else m = val;
     });
-    // Valide et re-render au blur
     inp.addEventListener('blur', function() {
       var val = parseInt(this.value, 10);
       var max = isHours ? 23 : 59;
@@ -238,18 +241,13 @@
       if (isHours) { h = val; renderDrum('h-items', h, 24); }
       else { m = val; renderDrum('m-items', m, 60); }
     });
-    // Entrée = blur
     inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') this.blur();
-      // Tab passe à l'autre champ
       if (e.key === 'Tab') {
         e.preventDefault();
         var otherId = isHours ? 'm-items' : 'h-items';
         var other = document.getElementById(otherId);
-        if (other) {
-          var otherInp = other.querySelector('.drum-input');
-          if (otherInp) otherInp.focus();
-        }
+        if (other) { var otherInp = other.querySelector('.drum-input'); if (otherInp) otherInp.focus(); }
       }
     });
     return inp;
@@ -261,18 +259,14 @@
     var isHours = id === 'h-items';
     el.innerHTML = '';
     var topOffset = getTopOffset(track.clientHeight, RANGE);
-
     for (var o = -RANGE; o <= RANGE; o++) {
       var v = ((val + o) % max + max) % max;
       var isCenter = (o === 0);
-
       if (isCenter) {
-        // Item central = input éditable
         var wrapper = document.createElement('div');
         wrapper.className = 'drum-item';
         wrapper.style.cursor = 'text';
-        var inp = makeInput(isHours);
-        wrapper.appendChild(inp);
+        wrapper.appendChild(makeInput(isHours));
         el.appendChild(wrapper);
       } else {
         var div = document.createElement('div');
@@ -327,9 +321,7 @@
     var track = document.getElementById(trackId);
     var isH = trackId === 'h-track';
     var startY, dragging = false, liveOffset = 0;
-
     track.addEventListener('mousedown', function(e){
-      // Ne pas déclencher le drag si on clique sur l'input
       if (e.target.tagName === 'INPUT') return;
       dragging = true; startY = e.clientY; liveOffset = 0;
       e.preventDefault();
@@ -350,6 +342,13 @@
 
   addDrag('h-track');
   addDrag('m-track');
+
+  function showAlert(msg) {
+    var box = document.getElementById('alert-box');
+    box.textContent = msg;
+    box.classList.add('show');
+    setTimeout(function(){ box.classList.remove('show'); }, 3000);
+  }
 
   function renderCalendar(){
     var grid = document.getElementById('cal-grid');
@@ -374,6 +373,19 @@
 
   window.validatePicker = function() {
     var result = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m, 0);
+
+    // Validation fin > début
+    if (field === 'fin_reelle' && debutParam) {
+      var debut = new Date(debutParam);
+      if (result <= debut) {
+        showAlert("⚠️ La fin réelle doit être ultérieure au début réel (" +
+          pad(debut.getDate()) + "/" + pad(debut.getMonth()+1) + "/" +
+          String(debut.getFullYear()).slice(2) + " - " +
+          pad(debut.getHours()) + ":" + pad(debut.getMinutes()) + ").");
+        return;
+      }
+    }
+
     var display = pad(selected.getDate()) + '/' + pad(selected.getMonth()+1) + '/' +
       String(selected.getFullYear()).slice(2) + ' - ' + pad(h) + ':' + pad(m);
     window.parent.postMessage({ type: 'datetime-selected', field: field, value: display, isoValue: result.toISOString() }, '*');
