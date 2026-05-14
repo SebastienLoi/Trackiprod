@@ -133,20 +133,9 @@
       height: 32px; line-height: 32px; flex-shrink: 0;
       margin-top: calc(28px + 6px + 100px - 16px);
     }
-
-    /* Alerte validation */
-    .alert-box {
-      display: none; position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-      background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
-      border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600;
-      z-index: 999; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .alert-box.show { display: block; }
   </style>
 </head>
 <body>
-
-<div class="alert-box" id="alert-box"></div>
 
 <div class="picker-wrap">
   <div class="calendar">
@@ -343,13 +332,6 @@
   addDrag('h-track');
   addDrag('m-track');
 
-  function showAlert(msg) {
-    var box = document.getElementById('alert-box');
-    box.textContent = msg;
-    box.classList.add('show');
-    setTimeout(function(){ box.classList.remove('show'); }, 3000);
-  }
-
   function renderCalendar(){
     var grid = document.getElementById('cal-grid');
     grid.querySelectorAll('.day,.empty').forEach(function(c){ c.remove(); });
@@ -374,14 +356,16 @@
   window.validatePicker = function() {
     var result = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m, 0);
 
-    // Validation fin > début
     if (field === 'fin_reelle' && debutParam) {
       var debut = new Date(debutParam);
-      if (result <= debut) {
-        showAlert("⚠️ La fin réelle doit être ultérieure au début réel (" +
-          pad(debut.getDate()) + "/" + pad(debut.getMonth()+1) + "/" +
-          String(debut.getFullYear()).slice(2) + " - " +
-          pad(debut.getHours()) + ":" + pad(debut.getMinutes()) + ").");
+      if (result.getTime() <= debut.getTime()) {
+        window.parent.postMessage({
+          type: 'datetime-error',
+          message: "⚠️ La fin réelle doit être ultérieure au début réel (" +
+            pad(debut.getDate()) + "/" + pad(debut.getMonth()+1) + "/" +
+            String(debut.getFullYear()).slice(2) + " - " +
+            pad(debut.getHours()) + ":" + pad(debut.getMinutes()) + ")."
+        }, '*');
         return;
       }
     }
