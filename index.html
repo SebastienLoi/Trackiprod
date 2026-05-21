@@ -21,8 +21,8 @@
   #myGrid { width: 100%; height: 100vh; }
 
   /* ── THÈME LIGHT (défaut) ─────────────────────────────── */
-  body.theme-light { background: #F5F2ECCC; } /* Couleur Background WeWeb light */
-  body.theme-light .ag-theme-alpine { --ag-background-color: #F5F2ECCC; --ag-odd-row-background-color: #C8C3B8; --ag-header-background-color: #EDE9E1; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1C2B3A; --ag-header-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; }
+  body.theme-light { background: #F0F2F7; } /* App Background WeWeb light */
+  body.theme-light .ag-theme-alpine { --ag-background-color: #E2E6F0; --ag-odd-row-background-color: #F0F2F7; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1C2B3A; --ag-secondary-foreground-color: #6B6860; }
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
@@ -40,8 +40,8 @@
   /* Cellules : taille 13px, retour à la ligne, interligne 1.4 */
   .ag-cell { font-size: 13px; padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Cellules éditables : fond jaune pâle en light, bleu foncé en dark */
-  body.theme-light .editable-cell { background-color: #FFFDE7 !important; }
+  /* Cellules éditables : cyan très atténué en light, bleu foncé en dark */
+  body.theme-light .editable-cell { background-color: #E8F7F9 !important; }
   body.theme-dark .editable-cell { background-color: #1A3A5C !important; }
 
   /* Curseur drag */
@@ -61,8 +61,55 @@
   body.theme-light .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover { background: #1A3A5C; }
   body.theme-dark .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover { background: #7EEAF5; }
 
-  /* Icônes dans les en-têtes */
-  .ag-header-cell-label img { vertical-align: middle; margin-right: 2px; }
+  /* ── BARRE DE ZOOM ───────────────────────────────────────── */
+  #zoom-bar {
+    position: fixed; bottom: 10px; left: 10px; z-index: 9999;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(30,42,58,0.85); border-radius: 20px;
+    padding: 4px 10px; backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  body.theme-light #zoom-bar { background: rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  #zoom-btn { background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 700; line-height: 1; padding: 0 2px; }
+  body.theme-dark #zoom-btn { color: #E8F4F8; }
+  body.theme-light #zoom-btn { color: #1A3A5C; }
+  #zoom-btn:hover { color: #00B4CC; }
+  #zoom-slider { -webkit-appearance: none; width: 80px; height: 4px; border-radius: 2px; outline: none; cursor: pointer; background: #2C5F8A; }
+  body.theme-light #zoom-slider { background: #B8C4D4; }
+  #zoom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #00B4CC; cursor: pointer; }
+  #zoom-label { font-size: 11px; font-weight: 600; min-width: 34px; text-align: right; }
+  body.theme-dark #zoom-label { color: #E8F4F8; }
+  body.theme-light #zoom-label { color: #1A3A5C; }
+
+  /* ── MENU CONTEXTUEL ─────────────────────────────────────── */
+  #ctx-menu {
+    display: none; position: fixed; z-index: 99999;
+    background: #1E2A3A; border: 1px solid #2C5F8A;
+    border-radius: 8px; padding: 4px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4); min-width: 180px;
+  }
+  body.theme-light #ctx-menu { background: #fff; border-color: #B8C4D4; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+  .ctx-item { padding: 7px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  body.theme-dark .ctx-item { color: #E8F4F8; }
+  body.theme-light .ctx-item { color: #1A3A5C; }
+  .ctx-item:hover { background: rgba(0,180,204,0.12); }
+  .ctx-item.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .ctx-sep { height: 1px; margin: 4px 0; background: #2C5F8A; }
+  body.theme-light .ctx-sep { background: #E5E7EB; }
+
+  /* Sous-menu colonnes */
+  #col-submenu {
+    display: none; position: fixed; z-index: 100000;
+    background: #1E2A3A; border: 1px solid #2C5F8A;
+    border-radius: 8px; padding: 4px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4); min-width: 200px; max-height: 320px; overflow-y: auto;
+  }
+  body.theme-light #col-submenu { background: #fff; border-color: #B8C4D4; }
+  .col-item { padding: 6px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  body.theme-dark .col-item { color: #E8F4F8; }
+  body.theme-light .col-item { color: #1A3A5C; }
+  .col-item:hover { background: rgba(0,180,204,0.12); }
+  .col-item input[type=checkbox] { accent-color: #00B4CC; }
 
   /* ── ASCENSEUR MIROIR EN HAUT ────────────────────────────── */
   /* Conteneur du tableau + scrollbar miroir empilés verticalement */
@@ -95,12 +142,27 @@
 
 <!-- ── Wrapper : scrollbar miroir (haut) + tableau ── -->
 <div id="grid-wrapper">
-  <!-- Scrollbar miroir positionné AU-DESSUS des en-têtes AG Grid -->
-  <!-- Sa largeur interne est synchronisée avec le contenu du tableau -->
   <div id="top-scroll"><div id="top-scroll-inner"></div></div>
-  <!-- Conteneur du tableau AG Grid avec le thème Alpine appliqué -->
   <div id="myGrid" class="ag-theme-alpine"></div>
 </div>
+
+<!-- Barre de zoom -->
+<div id="zoom-bar">
+  <button class="zoom-btn" id="zoom-out">−</button>
+  <input type="range" id="zoom-slider" min="60" max="150" value="100" step="5">
+  <button class="zoom-btn" id="zoom-in">+</button>
+  <span id="zoom-label">100%</span>
+</div>
+
+<!-- Menu contextuel -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-add-col">＋ Ajouter une colonne</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-hide-col">✕ Masquer cette colonne</div>
+</div>
+
+<!-- Sous-menu colonnes -->
+<div id="col-submenu"></div>
 <div id="cell-popup" style="
   display:none; position:fixed; z-index:9999;
   background:#1C2B3A; color:#E8F4F8;
@@ -402,7 +464,7 @@ async function init() {
     { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
     { field: 'theoretical_end', headerName: 'Fin théorique', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
     { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Quantité finale', headerTooltip: 'Quantité réellement produite — saisie opérateur (doit être un entier supérieur ou égal à 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell',
+    { field: 'final_quantity', headerName: 'Qté conforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -423,8 +485,8 @@ async function init() {
       cellEditor: PersonnelEditor, cellEditorParams: { operators },
       cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
     },
-    { field: 'signature', headerName: 'Signature', headerTooltip: 'Signature de clôture de l\'opération', minWidth: 70 },
-    { field: 'signature_at', headerName: 'Signature le', headerTooltip: 'Date et heure de la signature', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
+    { field: 'final_quantity_ko', headerName: 'Qté non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'closed_at', headerName: 'Terminé le', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'editable-cell' },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
     // ── Colonnes secondaires ─────────────────────────────────────────────────
@@ -630,8 +692,120 @@ window.addEventListener('message', function(event) {
   });
 });
 
-// Lance l'initialisation au chargement de la page
-init().then(() => {
+// ── BARRE DE ZOOM ────────────────────────────────────────────────────────────
+(function() {
+  const slider = document.getElementById('zoom-slider');
+  const label  = document.getElementById('zoom-label');
+  const zoomIn  = document.getElementById('zoom-in');
+  const zoomOut = document.getElementById('zoom-out');
+
+  function applyZoom(val) {
+    document.getElementById('myGrid').style.fontSize = (val / 100) + 'rem';
+    label.textContent = val + '%';
+    slider.value = val;
+  }
+
+  slider.addEventListener('input', () => applyZoom(parseInt(slider.value)));
+  zoomIn.addEventListener('click', () => applyZoom(Math.min(150, parseInt(slider.value) + 5)));
+  zoomOut.addEventListener('click', () => applyZoom(Math.max(60, parseInt(slider.value) - 5)));
+  applyZoom(100);
+})();
+
+// ── MENU CONTEXTUEL ──────────────────────────────────────────────────────────
+(function() {
+  // Colonnes protégées — ne peuvent pas être masquées
+  const PROTECTED = new Set([
+    'order_number','reference','wo_split_quantity','internal_lot','status',
+    'theoretical_start','theoretical_end','is_locked','locked_by','locked_at',
+    'seq_num','actual_start','actual_end','final_quantity','final_quantity_ko',
+    'final_comment','operator_id','closed_at'
+  ]);
+
+  const ctxMenu    = document.getElementById('ctx-menu');
+  const colSubmenu = document.getElementById('col-submenu');
+  const ctxAdd     = document.getElementById('ctx-add-col');
+  const ctxHide    = document.getElementById('ctx-hide-col');
+
+  let currentColId = null;
+  let gridApi = null;
+
+  // Stocke la référence à l'API AG Grid dès qu'elle est disponible
+  const origOnGridReady = gridOptions.onGridReady;
+  gridOptions.onGridReady = function(params) {
+    gridApi = params.api;
+    if (origOnGridReady) origOnGridReady(params);
+  };
+
+  function closeAll() {
+    ctxMenu.style.display = 'none';
+    colSubmenu.style.display = 'none';
+  }
+
+  document.addEventListener('click', closeAll);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+
+  // Clic droit sur une cellule d'en-tête
+  document.addEventListener('contextmenu', function(e) {
+    const headerCell = e.target.closest('.ag-header-cell');
+    if (!headerCell) { closeAll(); return; }
+    e.preventDefault();
+
+    currentColId = headerCell.getAttribute('col-id');
+    const isProtected = PROTECTED.has(currentColId);
+
+    // Si colonne protégée : masquer l'option "Masquer" et le séparateur
+    ctxHide.style.display = isProtected ? 'none' : 'flex';
+    ctxMenu.querySelector('.ctx-sep').style.display = isProtected ? 'none' : 'block';
+
+    ctxMenu.style.display = 'block';
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.top  = e.clientY + 'px';
+    colSubmenu.style.display = 'none';
+  });
+
+  // Masquer colonne
+  ctxHide.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (!gridApi || !currentColId) return;
+    gridApi.setColumnVisible(currentColId, false);
+    closeAll();
+  });
+
+  // Ajouter colonne — affiche le sous-menu
+  ctxAdd.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (!gridApi) return;
+
+    // Récupère toutes les colonnes masquées
+    const hidden = gridApi.getColumns().filter(c => !c.isVisible());
+    colSubmenu.innerHTML = '';
+
+    if (hidden.length === 0) {
+      colSubmenu.innerHTML = '<div class="col-item" style="opacity:0.5">Aucune colonne masquée</div>';
+    } else {
+      hidden.forEach(col => {
+        const id = col.getColId();
+        const name = col.getColDef().headerName || id;
+        const item = document.createElement('div');
+        item.className = 'col-item';
+        item.innerHTML = `<input type="checkbox"> ${name}`;
+        const cb = item.querySelector('input');
+        cb.addEventListener('change', () => {
+          gridApi.setColumnVisible(id, cb.checked);
+        });
+        colSubmenu.appendChild(item);
+      });
+    }
+
+    const rect = ctxMenu.getBoundingClientRect();
+    colSubmenu.style.display = 'block';
+    colSubmenu.style.left = (rect.right + 4) + 'px';
+    colSubmenu.style.top  = rect.top + 'px';
+  });
+
+  colSubmenu.addEventListener('click', e => e.stopPropagation());
+})();
+
   // Applique le filtre de couleur sur toutes les icônes des en-têtes
   // après que le tableau est initialisé et les en-têtes rendus dans le DOM
   setTimeout(() => {
@@ -722,7 +896,9 @@ init().then(() => {
         'pointer-events:none; z-index:1000;' +
         'opacity:0; transition:opacity 0.12s ease;' +
         'background:linear-gradient(to ' + (dir === 'left' ? 'right' : 'left') + ',' +
-        'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%);';
+        (dir === 'left'
+          ? 'rgba(30,30,30,0.46) 0%, rgba(30,30,30,0.20) 60%, transparent 100%)'
+          : 'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%)');;
       // Le conteneur du tableau doit être en position relative pour que
       // l'absolute fonctionne correctement à l'intérieur
       gridEl.style.position = 'relative';
