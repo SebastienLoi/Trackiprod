@@ -65,11 +65,11 @@
   #zoom-bar {
     position: fixed; bottom: 10px; left: 10px; z-index: 9999;
     display: flex; align-items: center; gap: 6px;
-    background: rgba(30,42,58,0.85); border-radius: 20px;
-    padding: 4px 10px; backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    background: rgba(44, 95, 138, 0.55); border-radius: 20px;
+    padding: 4px 10px; backdrop-filter: blur(6px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
-  body.theme-light #zoom-bar { background: rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  body.theme-light #zoom-bar { background: rgba(224, 232, 242, 0.85); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   #zoom-btn { background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 700; line-height: 1; padding: 0 2px; }
   body.theme-dark #zoom-btn { color: #E8F4F8; }
   body.theme-light #zoom-btn { color: #1A3A5C; }
@@ -588,6 +588,7 @@ async function init() {
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
     onGridReady: params => {
+      window.gridApi = params.api; // Expose l'API globalement pour le menu contextuel
       // Restaure l'état des colonnes sauvegardé par l'admin (si disponible)
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved && isAdmin) {
@@ -727,14 +728,6 @@ window.addEventListener('message', function(event) {
   const ctxHide    = document.getElementById('ctx-hide-col');
 
   let currentColId = null;
-  let gridApi = null;
-
-  // Stocke la référence à l'API AG Grid dès qu'elle est disponible
-  const origOnGridReady = gridOptions.onGridReady;
-  gridOptions.onGridReady = function(params) {
-    gridApi = params.api;
-    if (origOnGridReady) origOnGridReady(params);
-  };
 
   function closeAll() {
     ctxMenu.style.display = 'none';
@@ -766,18 +759,18 @@ window.addEventListener('message', function(event) {
   // Masquer colonne
   ctxHide.addEventListener('click', function(e) {
     e.stopPropagation();
-    if (!gridApi || !currentColId) return;
-    gridApi.setColumnVisible(currentColId, false);
+    if (!window.gridApi || !currentColId) return;
+    window.gridApi.setColumnVisible(currentColId, false);
     closeAll();
   });
 
   // Ajouter colonne — affiche le sous-menu
   ctxAdd.addEventListener('click', function(e) {
     e.stopPropagation();
-    if (!gridApi) return;
+    if (!window.gridApi) return;
 
     // Récupère toutes les colonnes masquées
-    const hidden = gridApi.getColumns().filter(c => !c.isVisible());
+    const hidden = window.gridApi.getColumns().filter(c => !c.isVisible());
     colSubmenu.innerHTML = '';
 
     if (hidden.length === 0) {
@@ -791,7 +784,7 @@ window.addEventListener('message', function(event) {
         item.innerHTML = `<input type="checkbox"> ${name}`;
         const cb = item.querySelector('input');
         cb.addEventListener('change', () => {
-          gridApi.setColumnVisible(id, cb.checked);
+          window.gridApi.setColumnVisible(id, cb.checked);
         });
         colSubmenu.appendChild(item);
       });
