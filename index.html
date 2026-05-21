@@ -669,6 +669,86 @@ async function init() {
   agGrid.createGrid(gridDiv, gridOptions);
 }
 
+// Lance l'initialisation au chargement de la page
+init().then(() => {
+  setTimeout(() => {
+    document.querySelectorAll('.header-icon').forEach(img => {
+      img.style.filter = ICON_FILTER;
+    });
+  }, 200);
+
+  setTimeout(() => {
+    const topScroll  = document.getElementById('top-scroll');
+    const topInner   = document.getElementById('top-scroll-inner');
+    const agViewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
+    if (!topScroll || !topInner || !agViewport) return;
+    function syncWidth() {
+      const pinnedLeft  = document.querySelector('.ag-pinned-left-cols-container');
+      const pinnedRight = document.querySelector('.ag-pinned-right-cols-container');
+      const pinnedLeftW  = pinnedLeft  ? pinnedLeft.offsetWidth  : 0;
+      const pinnedRightW = pinnedRight ? pinnedRight.offsetWidth : 0;
+      topInner.style.width = (pinnedLeftW + agViewport.scrollWidth + pinnedRightW) + 'px';
+    }
+    syncWidth();
+    new ResizeObserver(syncWidth).observe(agViewport);
+    let syncing = false;
+    topScroll.addEventListener('scroll', () => {
+      if (syncing) return; syncing = true;
+      agViewport.scrollLeft = topScroll.scrollLeft;
+      syncing = false;
+    });
+    agViewport.addEventListener('scroll', () => {
+      if (syncing) return; syncing = true;
+      topScroll.scrollLeft = agViewport.scrollLeft;
+      syncing = false;
+    });
+  }, 500);
+
+  setTimeout(() => {
+    const viewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
+    const gridEl   = document.getElementById('myGrid');
+    const pinnedEl = document.querySelector('.ag-pinned-left-cols-container');
+    if (!viewport || !gridEl) return;
+    const ZONE = 120; const SPEED = 12; const MAX_OPAC = 0.95;
+    function makeOverlay(dir) {
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute; top:0; width:' + ZONE + 'px; height:100%; pointer-events:none; z-index:1000; opacity:0; transition:opacity 0.12s ease; background:linear-gradient(to ' + (dir === 'left' ? 'right' : 'left') + ',' + (dir === 'left' ? 'rgba(30,30,30,0.46) 0%, rgba(30,30,30,0.20) 60%, transparent 100%)' : 'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%)');
+      gridEl.style.position = 'relative';
+      gridEl.appendChild(el);
+      return el;
+    }
+    const overlayLeft  = makeOverlay('left');
+    const overlayRight = makeOverlay('right');
+    overlayRight.style.right = '0';
+    let scrollDir = 0, scrollForce = 0, rafId = null;
+    function scrollLoop() {
+      if (scrollDir !== 0) { viewport.scrollLeft += scrollDir * scrollForce * SPEED; rafId = requestAnimationFrame(scrollLoop); }
+    }
+    function deactivate() {
+      scrollDir = 0; scrollForce = 0;
+      overlayLeft.style.opacity = 0; overlayRight.style.opacity = 0;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+    document.addEventListener('mousemove', function(e) {
+      const rect = gridEl.getBoundingClientRect();
+      if (e.clientY < rect.top || e.clientY > rect.bottom) { deactivate(); return; }
+      const pinnedWidth = pinnedEl ? pinnedEl.getBoundingClientRect().width : 0;
+      const distL = e.clientX - (rect.left + pinnedWidth);
+      const distR = rect.right - e.clientX;
+      if (distL < ZONE && distL >= 0) {
+        overlayLeft.style.left = pinnedWidth + 'px';
+        scrollDir = -1; scrollForce = 1 - distL / ZONE;
+        overlayLeft.style.opacity = scrollForce * MAX_OPAC; overlayRight.style.opacity = 0;
+      } else if (distR < ZONE && distR >= 0) {
+        scrollDir = 1; scrollForce = 1 - distR / ZONE;
+        overlayRight.style.opacity = scrollForce * MAX_OPAC; overlayLeft.style.opacity = 0;
+      } else { deactivate(); }
+      if (scrollDir !== 0 && !rafId) rafId = requestAnimationFrame(scrollLoop);
+    });
+    document.addEventListener('mouseleave', deactivate);
+  }, 600);
+});
+
 // ── ÉCOUTE DES MESSAGES postMessage DEPUIS WEWEB ────────────────────────────
 // WeWeb envoie un message { type: 'set-theme', theme: 'light'|'dark' }
 // quand l'utilisateur bascule le thème, sans recharger l'iframe.
