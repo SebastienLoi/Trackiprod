@@ -232,42 +232,103 @@ const ICON_FILTER = theme === 'dark'
 const STORAGE_KEY = 'trackiprod_column_state';
 
 
-// ── ÉDITEUR DE DATE/HEURE ────────────────────────────────────────────────────
-// Composant custom AG Grid pour éditer une cellule date+heure
-// Affiché quand l'utilisateur double-clique sur une cellule de type datetime
+// ── ÉDITEUR DE DATE/HEURE — POPUP IFRAME ────────────────────────────────────
+// Ouvre le picker custom (GitHub Pages) dans un popup flottant au-dessus du tableau
 class DateTimeEditor {
   init(params) {
-    // Crée un champ de saisie de type datetime-local (picker natif du navigateur)
-    this.input = document.createElement('input');
-    this.input.type = 'datetime-local';
+    this.params    = params;
+    this.value     = params.value || null;
+    this.resolved  = false;
 
-    // Pré-remplit avec la valeur actuelle de la cellule (format ISO → format datetime-local)
-    this.input.value = params.value ?
-      new Date(params.value).toISOString().slice(0, 16) : '';
+    // Détermine le champ (début ou fin) selon le colId
+    const colId = params.column.getColId();
+    this.field = colId === 'actual_end' ? 'fin_reelle' : 'debut_reel';
 
-    // Style pour que l'input remplisse exactement la cellule
-    this.input.style.cssText = 'width:100%;height:100%;border:none;padding:0 8px;font-size:13px;';
+    // URL du picker : passe thème, champ et début réel si fin réelle
+    const actualStart = params.data?.actual_start || '';
+    const debutParam  = (this.field === 'fin_reelle' && actualStart)
+      ? '&debut=' + encodeURIComponent(actualStart) : '';
+    const pickerUrl = 'https://sebastienloi.github.io/Trackiprod/date_time_real_begin_end.html'
+      + '?theme=' + theme + '&field=' + this.field + debutParam;
+
+    // Conteneur popup
+    this.container = document.createElement('div');
+    this.container.style.cssText =
+      'position:fixed;z-index:99999;background:' +
+      (theme === 'dark' ? '#1E2A3A' : '#E2E6F0') +
+      ';border:1px solid ' + (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') +
+      ';border-radius:12px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);' +
+      'display:flex;flex-direction:column;gap:10px;';
+
+    // Positionner en centre-haut de l'écran
+    this.container.style.top  = '80px';
+    this.container.style.left = '50%';
+    this.container.style.transform = 'translateX(-50%)';
+
+    // iFrame du picker
+    this.iframe = document.createElement('iframe');
+    this.iframe.src = pickerUrl;
+    this.iframe.style.cssText = 'width:520px;height:260px;border:none;border-radius:8px;';
+    this.container.appendChild(this.iframe);
+
+    // Boutons Valider / Annuler
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;';
+
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = 'Annuler';
+    btnCancel.style.cssText = 'padding:6px 16px;border-radius:6px;border:1px solid ' +
+      (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') + ';background:transparent;cursor:pointer;' +
+      'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';font-size:13px;';
+    btnCancel.addEventListener('click', () => { this.resolved = true; params.api.stopEditing(true); });
+
+    const btnOk = document.createElement('button');
+    btnOk.textContent = 'Valider';
+    btnOk.style.cssText = 'padding:6px 16px;border-radius:6px;border:none;background:#3D8A65;color:#fff;cursor:pointer;font-size:13px;font-weight:600;';
+    btnOk.addEventListener('click', () => {
+      this.iframe.contentWindow.postMessage({ type: 'validate' }, '*');
+    });
+
+    btnRow.appendChild(btnCancel);
+    btnRow.appendChild(btnOk);
+    this.container.appendChild(btnRow);
+
+    // Listener postMessage du picker
+    this._msgHandler = (e) => {
+      if (e.data.type === 'datetime-selected') {
+        this.value   = e.data.isoValue;
+        this.resolved = true;
+        params.api.stopEditing(false);
+      }
+      if (e.data.type === 'datetime-error') {
+        // Afficher l'erreur dans le popup
+        let errEl = this.container.querySelector('.picker-error');
+        if (!errEl) {
+          errEl = document.createElement('div');
+          errEl.className = 'picker-error';
+          errEl.style.cssText = 'color:#DC2626;font-size:12px;text-align:center;';
+          this.container.insertBefore(errEl, btnRow);
+        }
+        errEl.textContent = e.data.message;
+      }
+    };
+    window.addEventListener('message', this._msgHandler);
   }
 
-  // Retourne l'élément HTML à afficher dans la cellule pendant l'édition
-  getGui() { return this.input; }
+  getGui()           { return this.container; }
+  isPopup()          { return true; }
+  getPopupPosition() { return 'under'; }
 
-  // Appelé après que l'élément est inséré dans le DOM
   afterGuiAttached() {
-    this.input.focus();        // Met le focus sur le champ
-    this.input.showPicker?.(); // Ouvre le picker si le navigateur le supporte
+    document.body.appendChild(this.container);
   }
 
-  // Retourne la valeur saisie, convertie en format ISO pour Supabase
-  getValue() {
-    return this.input.value ? new Date(this.input.value).toISOString() : null;
+  getValue() { return this.value; }
+
+  destroy() {
+    window.removeEventListener('message', this._msgHandler);
+    if (this.container.parentNode) this.container.parentNode.removeChild(this.container);
   }
-
-  // false = l'éditeur s'affiche dans la cellule (pas dans un popup flottant)
-  isPopup() { return false; }
-
-  // Nettoyage à la fermeture (rien à faire ici)
-  destroy() {}
 }
 
 
@@ -324,7 +385,7 @@ class PersonnelEditor {
   }
 
   getGui() { return this.select; }
-  afterGuiAttached() { this.select.focus(); }
+  afterGuiAttached() { this.select.focus(); setTimeout(() => this.select.click(), 0); }
 
   // Retourne l'id numérique sélectionné, ou null si aucun
   getValue() { return this.select.value ? parseInt(this.select.value) : null; }
@@ -482,7 +543,7 @@ async function init() {
     { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></span></div>' } },
     { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
     { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Qté\nconforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 20, width: 45, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
+    { field: 'final_quantity', headerName: 'Qté\nconforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 10, width: 32, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -494,7 +555,7 @@ async function init() {
         return true;
       }
     },
-    { field: 'final_quantity_ko', headerName: 'Qté\nnon\nconforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 20, width: 45, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'final_quantity_ko', headerName: 'Qté\nnon\nconforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 10, width: 32, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
     { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire de l\'opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header' },
     {
       field: 'operator_id', minWidth: 50,
