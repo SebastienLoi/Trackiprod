@@ -22,11 +22,11 @@
 
   /* ── THÈME LIGHT (défaut) ─────────────────────────────── */
   body.theme-light { background: #F0F2F7; }
-  body.theme-light .ag-theme-alpine { --ag-background-color: #F0F2F7; --ag-odd-row-background-color: #FDFDFB; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; }
+  body.theme-light .ag-theme-alpine { --ag-background-color: #F0F2F7; --ag-odd-row-background-color: #FDFDFB; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; --ag-row-hover-color: transparent; --ag-selected-row-background-color: transparent; --ag-range-selection-background-color: transparent; }
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
-  body.theme-dark .ag-theme-alpine { --ag-background-color: #0D1117; --ag-odd-row-background-color: #2A3A4E; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #F0F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
+  body.theme-dark .ag-theme-alpine { --ag-background-color: #0D1117; --ag-odd-row-background-color: #2A3A4E; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #F0F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-row-hover-color: transparent; --ag-selected-row-background-color: transparent; --ag-range-selection-background-color: transparent; --ag-range-selection-border-color: #00B4CC; }
 
   /* Lignes impaires — overridé par les variables AG Grid ci-dessus */
   /* On garde la classe pour compatibilité mais les variables priment */
@@ -44,33 +44,15 @@
   /* Curseur main au survol uniquement */
   .editable-cell:hover { cursor: pointer !important; }
 
-  /* Animation comète sur contour des cellules saisie opérateur */
-  /* Le div.comet-ring est injecté par JS dans chaque cellule editable */
-  .comet-ring {
-    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
-    border-radius: 1px;
+  /* Surbrillance uniquement sur la cellule editable survolée */
+  .editable-cell:hover {
+    background-color: #2C5F8A33 !important;
   }
-  .comet-ring::before {
-    content: '';
-    position: absolute;
-    width: 40%; height: 2px;
-    border-radius: 1px;
-    /* Couleur light par défaut */
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.9), transparent);
-    animation: comet-run 8s linear infinite;
-    /* offset sur offset-path */
-    offset-path: inset(0 round 1px);
-    offset-distance: 0%;
+  body.theme-light .editable-cell:hover {
+    background-color: #1A3A5C22 !important;
   }
-  body.theme-dark .comet-ring::before {
-    background: linear-gradient(to right, transparent, rgba(0,180,204,0.95), transparent);
-  }
-  @keyframes comet-run {
-    0%   { offset-distance: 0%;   opacity: 1; }
-    50%  { offset-distance: 100%; opacity: 0.2; }
-    50.01% { opacity: 0; }
-    100% { offset-distance: 100%; opacity: 0; }
-  }
+  /* Pas de bordure focus AG Grid */
+  .ag-cell-focus { outline: none !important; border: none !important; }
 
   /* ── EN-TÊTES : même couleur pour tous ──────────────────── */
   /* Icône cadenas en blanc */
@@ -623,19 +605,6 @@ async function init() {
       'row-available':    p => ['disponible', 'available'].includes(p.data?.status),
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
-    },
-
-    // Injection du div comet-ring dans chaque cellule editable après rendu
-    onCellRendered: params => {
-      if (params.colDef.cellClass && params.colDef.cellClass.includes('editable-cell')) {
-        const cell = params.eGridCell;
-        if (cell && !cell.querySelector('.comet-ring')) {
-          cell.style.position = 'relative';
-          const ring = document.createElement('div');
-          ring.className = 'comet-ring';
-          cell.appendChild(ring);
-        }
-      }
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
