@@ -26,7 +26,7 @@
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
-  body.theme-dark .ag-theme-alpine { --ag-background-color: #0D1117; --ag-odd-row-background-color: #2A3A4E; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #F0F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-row-hover-color: transparent; --ag-selected-row-background-color: transparent; --ag-range-selection-background-color: transparent; --ag-range-selection-border-color: #00B4CC; }
+  body.theme-dark .ag-theme-alpine { --ag-background-color: #0D1117; --ag-odd-row-background-color: #2A3A4E; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #0096AA; --ag-secondary-foreground-color: #6B8FA8; --ag-row-hover-color: transparent; --ag-selected-row-background-color: transparent; --ag-range-selection-background-color: transparent; --ag-range-selection-border-color: #00B4CC; }
 
   /* Lignes impaires — overridé par les variables AG Grid ci-dessus */
   /* On garde la classe pour compatibilité mais les variables priment */
@@ -46,10 +46,10 @@
 
   /* Surbrillance uniquement sur la cellule editable survolée */
   .editable-cell:hover {
-    background-color: #2C5F8A33 !important;
+    background-color: rgba(59, 130, 246, 0.2) !important;
   }
   body.theme-light .editable-cell:hover {
-    background-color: #1A3A5C22 !important;
+    background-color: rgba(37, 99, 235, 0.15) !important;
   }
   /* Pas de bordure focus AG Grid */
   .ag-cell-focus { outline: none !important; border: none !important; }
@@ -88,17 +88,17 @@
   body.theme-dark #cell-popup { background:#EDE9E1; color:#1C2B3A; }
 
   /* ── BARRE DE ZOOM ───────────────────────────────────────── */
-  #zoom-bar { position:fixed; bottom:10px; left:10px; z-index:9999; display:flex; align-items:center; gap:6px; background:rgba(44,95,138,0.55); border-radius:20px; padding:4px 10px; backdrop-filter:blur(6px); box-shadow:0 2px 8px rgba(0,0,0,0.2); }
-  body.theme-light #zoom-bar { background:rgba(224,232,242,0.85); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+  #zoom-bar { position:fixed; bottom:10px; left:10px; z-index:9999; display:flex; align-items:center; gap:6px; background:rgba(44,95,138,0.55); border-radius:20px; padding:4px 10px; backdrop-filter:blur(6px); box-shadow:0 2px 8px rgba(0,0,0,0.2); border:1px solid #2C5F8A; }
+  body.theme-light #zoom-bar { background:rgba(224,232,242,0.85); box-shadow:0 2px 8px rgba(0,0,0,0.1); border:1px solid #B8C4D4; }
   .zoom-btn { background:none; border:none; cursor:pointer; font-size:16px; font-weight:700; line-height:1; padding:0 2px; }
-  body.theme-dark .zoom-btn { color:#E8F4F8; }
+  body.theme-dark .zoom-btn { color:#0096AA; }
   body.theme-light .zoom-btn { color:#1A3A5C; }
   .zoom-btn:hover { color:#00B4CC; }
   #zoom-slider { -webkit-appearance:none; width:80px; height:4px; border-radius:2px; outline:none; cursor:pointer; background:#2C5F8A; }
   body.theme-light #zoom-slider { background:#B8C4D4; }
   #zoom-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#00B4CC; cursor:pointer; }
   #zoom-label { font-size:11px; font-weight:600; min-width:34px; text-align:right; }
-  body.theme-dark #zoom-label { color:#E8F4F8; }
+  body.theme-dark #zoom-label { color:#0096AA; }
   body.theme-light #zoom-label { color:#1A3A5C; }
 
   /* ── MENU CONTEXTUEL ─────────────────────────────────────── */
@@ -482,7 +482,7 @@ async function init() {
     { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></span></div>' } },
     { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
     { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Quantité conforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
+    { field: 'final_quantity', headerName: 'Qté\nconforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 20, width: 45, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -494,7 +494,7 @@ async function init() {
         return true;
       }
     },
-    { field: 'final_quantity_ko', headerName: 'Quantité non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'final_quantity_ko', headerName: 'Qté\nnon\nconforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 20, width: 45, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
     { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire de l\'opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header' },
     {
       field: 'operator_id', minWidth: 50,
@@ -577,6 +577,7 @@ async function init() {
     headerHeight: 48,
     tooltipShowDelay: 300,
     rowDragManaged: isAdmin,
+    singleClickEdit: true,
 
     // Animation lors du déplacement des lignes (drag)
     animateRows: true,
@@ -984,6 +985,7 @@ init().then(() => {
 
     // Désactive le scroll si la souris quitte la fenêtre
     document.addEventListener('mouseleave', deactivate);
+    document.addEventListener('mouseout', function(e) { if (!e.relatedTarget) deactivate(); });
 
     // ── Désactivation complète ────────────────────────────────────────────
     // Remet tout à zéro : direction, force, overlays, boucle d'animation
