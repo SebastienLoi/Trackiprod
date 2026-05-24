@@ -22,11 +22,11 @@
 
   /* ── THÈME LIGHT (défaut) ─────────────────────────────── */
   body.theme-light { background: #F0F2F7; }
-  body.theme-light .ag-theme-alpine { --ag-background-color: #E2E6F0; --ag-odd-row-background-color: #F0F2F7; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; }
+  body.theme-light .ag-theme-alpine { --ag-background-color: #F0F2F7; --ag-odd-row-background-color: #FDFDFB; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; }
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
-  body.theme-dark .ag-theme-alpine { --ag-background-color: #1E2A3A; --ag-odd-row-background-color: #162231; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #0096AA; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
+  body.theme-dark .ag-theme-alpine { --ag-background-color: #0D1117; --ag-odd-row-background-color: #2A3A4E; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #F0F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
 
   /* Lignes impaires — overridé par les variables AG Grid ci-dessus */
   /* On garde la classe pour compatibilité mais les variables priment */
@@ -40,23 +40,49 @@
   /* Cellules : taille 13px, retour à la ligne, interligne 1.4 */
   .ag-cell { font-size: 13px; padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Cellules saisie opérateur : curseur main */
-  .editable-cell { cursor: pointer !important; }
-  .ag-row:not(.ag-row-editing) .editable-cell:not(.ag-cell-focus) { opacity: 0.5; }
-  .editable-cell:hover, .editable-cell.ag-cell-focus { opacity: 1 !important; }
+  /* ── CELLULES SAISIE OPÉRATEUR ──────────────────────────── */
+  /* Curseur main au survol uniquement */
+  .editable-cell:hover { cursor: pointer !important; }
 
-  /* En-têtes colonnes saisie opérateur : Text Primary x2 plus clair */
-  body.theme-light .ag-header-cell.editable-header { background-color: #8DA8C2 !important; }
-  body.theme-light .ag-header-cell.editable-header .ag-header-cell-label { color: #FFFFFF !important; }
-  body.theme-dark .ag-header-cell.editable-header { background-color: #004E5A !important; }
-  body.theme-dark .ag-header-cell.editable-header .ag-header-cell-label { color: #FFFFFF !important; }
+  /* Animation comète sur contour des cellules saisie opérateur */
+  /* Le div.comet-ring est injecté par JS dans chaque cellule editable */
+  .comet-ring {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    border-radius: 1px;
+  }
+  .comet-ring::before {
+    content: '';
+    position: absolute;
+    width: 40%; height: 2px;
+    border-radius: 1px;
+    /* Couleur light par défaut */
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.9), transparent);
+    animation: comet-run 8s linear infinite;
+    /* offset sur offset-path */
+    offset-path: inset(0 round 1px);
+    offset-distance: 0%;
+  }
+  body.theme-dark .comet-ring::before {
+    background: linear-gradient(to right, transparent, rgba(0,180,204,0.95), transparent);
+  }
+  @keyframes comet-run {
+    0%   { offset-distance: 0%;   opacity: 1; }
+    50%  { offset-distance: 100%; opacity: 0.2; }
+    50.01% { opacity: 0; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
 
-  /* Forcer même couleur police pour tous les en-têtes */
-  body.theme-light .ag-header-cell-label { color: #FFFFFF !important; }
-  body.theme-dark .ag-header-cell-label { color: #FFFFFF !important; }
-
-  /* Icône cadenas même couleur que le texte en-tête */
+  /* ── EN-TÊTES : même couleur pour tous ──────────────────── */
+  /* Icône cadenas en blanc */
   .header-icon { filter: brightness(0) invert(1) !important; }
+
+  /* ── ALTERNANCE DE LIGNES ────────────────────────────────── */
+  /* Lignes paires  : Background  light=#E2E6F0  dark=#1E2A3A  */
+  /* Lignes impaires: GlassBackground light=#FDFDFB dark=#2A3A4E */
+  .ag-row-even { background-color: #E2E6F0 !important; }
+  body.theme-dark .ag-row-even { background-color: #1E2A3A !important; }
+  .row-odd { background-color: #FDFDFB !important; }
+  body.theme-dark .row-odd { background-color: #2A3A4E !important; }
 
   /* ── COULEURS DE LIGNES PAR STATUT ───────────────────── */
   .row-available    { background-color: #E8F5E9 !important; }
@@ -486,7 +512,8 @@ async function init() {
         return true;
       }
     },
-    { field: 'final_comment', headerName: 'Commentaire final', headerTooltip: 'Commentaire de clôture de l\'opération — saisie opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header' },
+    { field: 'final_quantity_ko', headerName: 'Quantité non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire de l\'opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header' },
     {
       field: 'operator_id', minWidth: 50,
       headerTooltip: 'Opérateur assigné à cette opération',
@@ -495,8 +522,7 @@ async function init() {
       cellEditor: PersonnelEditor, cellEditorParams: { operators },
       cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
     },
-    { field: 'final_quantity_ko', headerName: 'Quantité non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
-    { field: 'closed_at', headerName: 'Terminé le', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'editable-cell', headerClass: 'editable-header', headerClass: 'editable-header' },
+    { field: 'closed_at', headerName: 'Terminé le', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'no-sweep' },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
     // ── Colonnes secondaires ─────────────────────────────────────────────────
@@ -597,6 +623,19 @@ async function init() {
       'row-available':    p => ['disponible', 'available'].includes(p.data?.status),
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
+    },
+
+    // Injection du div comet-ring dans chaque cellule editable après rendu
+    onCellRendered: params => {
+      if (params.colDef.cellClass && params.colDef.cellClass.includes('editable-cell')) {
+        const cell = params.eGridCell;
+        if (cell && !cell.querySelector('.comet-ring')) {
+          cell.style.position = 'relative';
+          const ring = document.createElement('div');
+          ring.className = 'comet-ring';
+          cell.appendChild(ring);
+        }
+      }
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
