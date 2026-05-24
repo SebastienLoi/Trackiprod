@@ -22,11 +22,11 @@
 
   /* ── THÈME LIGHT (défaut) ─────────────────────────────── */
   body.theme-light { background: #F0F2F7; }
-  body.theme-light .ag-theme-alpine { --ag-background-color: #E2E6F0; --ag-odd-row-background-color: #F0F2F7; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1C2B3A; --ag-secondary-foreground-color: #6B6860; }
+  body.theme-light .ag-theme-alpine { --ag-background-color: #E2E6F0; --ag-odd-row-background-color: #F0F2F7; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1A3A5C; --ag-secondary-foreground-color: #6B6860; }
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
-  body.theme-dark .ag-theme-alpine { --ag-background-color: #1E2A3A; --ag-odd-row-background-color: #162231; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #E8F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
+  body.theme-dark .ag-theme-alpine { --ag-background-color: #1E2A3A; --ag-odd-row-background-color: #162231; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #0096AA; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
 
   /* Lignes impaires — overridé par les variables AG Grid ci-dessus */
   /* On garde la classe pour compatibilité mais les variables priment */
@@ -40,21 +40,33 @@
   /* Cellules : taille 13px, retour à la ligne, interligne 1.4 */
   .ag-cell { font-size: 13px; padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 
-  /* En-têtes colonnes saisie opérateur */
-  body.theme-light .ag-header-cell.editable-header { background-color: #EBF3FA !important; }
-  body.theme-light .ag-header-cell.editable-header .ag-header-cell-label { color: #1A3A5C !important; }
-  body.theme-dark .ag-header-cell.editable-header { background-color: #EBF3FA !important; }
-  body.theme-dark .ag-header-cell.editable-header .ag-header-cell-label { color: #0096AA !important; }
+  /* Cellules saisie opérateur : curseur main */
+  .editable-cell { cursor: pointer !important; }
+  .ag-row:not(.ag-row-editing) .editable-cell:not(.ag-cell-focus) { opacity: 0.5; }
+  .editable-cell:hover, .editable-cell.ag-cell-focus { opacity: 1 !important; }
+
+  /* En-têtes colonnes saisie opérateur : Text Primary x2 plus clair */
+  body.theme-light .ag-header-cell.editable-header { background-color: #8DA8C2 !important; }
+  body.theme-light .ag-header-cell.editable-header .ag-header-cell-label { color: #FFFFFF !important; }
+  body.theme-dark .ag-header-cell.editable-header { background-color: #004E5A !important; }
+  body.theme-dark .ag-header-cell.editable-header .ag-header-cell-label { color: #FFFFFF !important; }
+
+  /* Forcer même couleur police pour tous les en-têtes */
+  body.theme-light .ag-header-cell-label { color: #FFFFFF !important; }
+  body.theme-dark .ag-header-cell-label { color: #FFFFFF !important; }
+
+  /* Icône cadenas même couleur que le texte en-tête */
+  .header-icon { filter: brightness(0) invert(1) !important; }
 
   /* ── COULEURS DE LIGNES PAR STATUT ───────────────────── */
-  .row-available { background-color: #E8F5E9 !important; }
+  .row-available    { background-color: #E8F5E9 !important; }
   .row-available.row-odd { background-color: #D6EDD8 !important; }
-  body.theme-dark .row-available { background-color: #1A3A20 !important; }
+  body.theme-dark .row-available    { background-color: #1A3A20 !important; }
   body.theme-dark .row-available.row-odd { background-color: #152E1A !important; }
 
-  .row-stop-active { background-color: #FFEBEE !important; }
+  .row-stop-active  { background-color: #FFEBEE !important; }
   .row-stop-active.row-odd { background-color: #FDDCDF !important; }
-  body.theme-dark .row-stop-active { background-color: #3A1A1A !important; }
+  body.theme-dark .row-stop-active  { background-color: #3A1A1A !important; }
   body.theme-dark .row-stop-active.row-odd { background-color: #2E1515 !important; }
 
   .row-stop-planned { background-color: #FFF3E0 !important; }
@@ -66,6 +78,37 @@
   .ag-row-drag { cursor: grab; }
   body.theme-light #cell-popup { background:#1C2B3A; color:#E8F4F8; }
   body.theme-dark #cell-popup { background:#EDE9E1; color:#1C2B3A; }
+
+  /* ── BARRE DE ZOOM ───────────────────────────────────────── */
+  #zoom-bar { position:fixed; bottom:10px; left:10px; z-index:9999; display:flex; align-items:center; gap:6px; background:rgba(44,95,138,0.55); border-radius:20px; padding:4px 10px; backdrop-filter:blur(6px); box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+  body.theme-light #zoom-bar { background:rgba(224,232,242,0.85); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+  .zoom-btn { background:none; border:none; cursor:pointer; font-size:16px; font-weight:700; line-height:1; padding:0 2px; }
+  body.theme-dark .zoom-btn { color:#E8F4F8; }
+  body.theme-light .zoom-btn { color:#1A3A5C; }
+  .zoom-btn:hover { color:#00B4CC; }
+  #zoom-slider { -webkit-appearance:none; width:80px; height:4px; border-radius:2px; outline:none; cursor:pointer; background:#2C5F8A; }
+  body.theme-light #zoom-slider { background:#B8C4D4; }
+  #zoom-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#00B4CC; cursor:pointer; }
+  #zoom-label { font-size:11px; font-weight:600; min-width:34px; text-align:right; }
+  body.theme-dark #zoom-label { color:#E8F4F8; }
+  body.theme-light #zoom-label { color:#1A3A5C; }
+
+  /* ── MENU CONTEXTUEL ─────────────────────────────────────── */
+  #ctx-menu { display:none; position:fixed; z-index:99999; background:#1E2A3A; border:1px solid #2C5F8A; border-radius:8px; padding:4px 0; box-shadow:0 4px 16px rgba(0,0,0,0.4); min-width:180px; }
+  body.theme-light #ctx-menu { background:#fff; border-color:#B8C4D4; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+  .ctx-item { padding:7px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  body.theme-dark .ctx-item { color:#E8F4F8; }
+  body.theme-light .ctx-item { color:#1A3A5C; }
+  .ctx-item:hover { background:rgba(0,180,204,0.12); }
+  .ctx-sep { height:1px; margin:4px 0; background:#2C5F8A; }
+  body.theme-light .ctx-sep { background:#E5E7EB; }
+  #col-submenu { display:none; position:fixed; z-index:100000; background:#1E2A3A; border:1px solid #2C5F8A; border-radius:8px; padding:4px 0; box-shadow:0 4px 16px rgba(0,0,0,0.4); min-width:200px; max-height:320px; overflow-y:auto; }
+  body.theme-light #col-submenu { background:#fff; border-color:#B8C4D4; }
+  .col-item { padding:6px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  body.theme-dark .col-item { color:#E8F4F8; }
+  body.theme-light .col-item { color:#1A3A5C; }
+  .col-item:hover { background:rgba(0,180,204,0.12); }
+  .col-item input[type=checkbox] { accent-color:#00B4CC; }
 
   /* ── ASCENSEUR HORIZONTAL STYLISÉ ───────────────────────── */
 
@@ -113,12 +156,23 @@
 
 <!-- ── Wrapper : scrollbar miroir (haut) + tableau ── -->
 <div id="grid-wrapper">
-  <!-- Scrollbar miroir positionné AU-DESSUS des en-têtes AG Grid -->
-  <!-- Sa largeur interne est synchronisée avec le contenu du tableau -->
   <div id="top-scroll"><div id="top-scroll-inner"></div></div>
-  <!-- Conteneur du tableau AG Grid avec le thème Alpine appliqué -->
   <div id="myGrid" class="ag-theme-alpine"></div>
 </div>
+
+<div id="zoom-bar">
+  <button class="zoom-btn" id="zoom-out">−</button>
+  <input type="range" id="zoom-slider" min="60" max="150" value="100" step="5">
+  <button class="zoom-btn" id="zoom-in">+</button>
+  <span id="zoom-label">100%</span>
+</div>
+
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-add-col">＋ Ajouter une colonne</div>
+  <div class="ctx-sep" id="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-hide-col">✕ Masquer cette colonne</div>
+</div>
+<div id="col-submenu"></div>
 <div id="cell-popup" style="
   display:none; position:fixed; z-index:9999;
   background:#1C2B3A; color:#E8F4F8;
@@ -414,13 +468,13 @@ async function init() {
 
     // ── Dates et saisies opérateur ───────────────────────────────────────────
     { field: 'theoretical_start', headerName: 'Début théorique', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
+    { field: 'theoretical_end', headerName: 'Fin théorique', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
     { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
     { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span></div>' } },
     { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></span></div>' } },
     { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
-    { field: 'theoretical_end', headerName: 'Fin théorique', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
     { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Quantité finale', headerTooltip: 'Quantité réellement produite — saisie opérateur (doit être un entier supérieur ou égal à 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
+    { field: 'final_quantity', headerName: 'Quantité conforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -441,8 +495,8 @@ async function init() {
       cellEditor: PersonnelEditor, cellEditorParams: { operators },
       cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
     },
-    { field: 'signature', headerName: 'Signature', headerTooltip: 'Signature de clôture de l\'opération', minWidth: 70 },
-    { field: 'signature_at', headerName: 'Signature le', headerTooltip: 'Date et heure de la signature', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
+    { field: 'final_quantity_ko', headerName: 'Quantité non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', headerClass: 'editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'closed_at', headerName: 'Terminé le', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'editable-cell', headerClass: 'editable-header', headerClass: 'editable-header' },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
     // ── Colonnes secondaires ─────────────────────────────────────────────────
@@ -539,14 +593,15 @@ async function init() {
 
     // Règles de style par ligne : applique la classe 'row-odd' sur les lignes impaires
     rowClassRules: {
-      'row-odd': p => p.node.rowIndex % 2 !== 0,
-      'row-available': p => p.data?.status === 'disponible' || p.data?.status === 'available',
-      'row-stop-active': p => p.data?.status === 'arrêt en cours' || p.data?.status === 'stop_active',
-      'row-stop-planned': p => p.data?.status === 'arrêt programmé' || p.data?.status === 'stop_planned',
+      'row-odd':          p => p.node.rowIndex % 2 !== 0,
+      'row-available':    p => ['disponible', 'available'].includes(p.data?.status),
+      'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
+      'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
     onGridReady: params => {
+      window.gridApi = params.api;
       // Restaure l'état des colonnes sauvegardé par l'admin (si disponible)
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved && isAdmin) {
@@ -651,6 +706,104 @@ window.addEventListener('message', function(event) {
   });
 });
 
+// ── BARRE DE ZOOM ────────────────────────────────────────────────────────────
+(function() {
+  const slider = document.getElementById('zoom-slider');
+  const label  = document.getElementById('zoom-label');
+  const btnIn  = document.getElementById('zoom-in');
+  const btnOut = document.getElementById('zoom-out');
+
+  function applyZoom(val) {
+    const scale = val / 100;
+    const grid = document.getElementById('myGrid');
+    grid.style.transform = `scale(${scale})`;
+    grid.style.transformOrigin = 'top left';
+    grid.style.width  = (100 / scale) + '%';
+    grid.style.height = (100 / scale) + 'vh';
+    label.textContent = val + '%';
+    slider.value = val;
+  }
+
+  slider.addEventListener('input', () => applyZoom(parseInt(slider.value)));
+  btnIn.addEventListener('click',  () => applyZoom(Math.min(150, parseInt(slider.value) + 5)));
+  btnOut.addEventListener('click', () => applyZoom(Math.max(60,  parseInt(slider.value) - 5)));
+  applyZoom(100);
+})();
+
+// ── MENU CONTEXTUEL (clic droit sur en-tête) ─────────────────────────────────
+(function() {
+  const PROTECTED = new Set([
+    'order_number','reference','wo_split_quantity','internal_lot','status',
+    'theoretical_start','theoretical_end','is_locked','locked_by','locked_at',
+    'seq_num','actual_start','actual_end','final_quantity','final_quantity_ko',
+    'final_comment','operator_id','closed_at'
+  ]);
+
+  const ctxMenu    = document.getElementById('ctx-menu');
+  const colSubmenu = document.getElementById('col-submenu');
+  const ctxAdd     = document.getElementById('ctx-add-col');
+  const ctxHide    = document.getElementById('ctx-hide-col');
+  const ctxSep     = document.getElementById('ctx-sep');
+  let currentColId = null;
+
+  function closeAll() {
+    ctxMenu.style.display    = 'none';
+    colSubmenu.style.display = 'none';
+  }
+
+  document.addEventListener('click', closeAll);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+
+  document.addEventListener('contextmenu', function(e) {
+    const headerCell = e.target.closest('.ag-header-cell');
+    if (!headerCell) { closeAll(); return; }
+    e.preventDefault();
+    currentColId = headerCell.getAttribute('col-id');
+    const isProtected = PROTECTED.has(currentColId);
+    ctxHide.style.display = isProtected ? 'none' : 'flex';
+    ctxSep.style.display  = isProtected ? 'none' : 'block';
+    ctxMenu.style.display = 'block';
+    ctxMenu.style.left    = e.clientX + 'px';
+    ctxMenu.style.top     = e.clientY + 'px';
+    colSubmenu.style.display = 'none';
+  });
+
+  ctxHide.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (!window.gridApi || !currentColId) return;
+    window.gridApi.setColumnVisible(currentColId, false);
+    closeAll();
+  });
+
+  ctxAdd.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (!window.gridApi) return;
+    const hidden = window.gridApi.getColumns().filter(c => !c.isVisible());
+    colSubmenu.innerHTML = '';
+    if (hidden.length === 0) {
+      colSubmenu.innerHTML = '<div class="col-item" style="opacity:0.5">Aucune colonne masquée</div>';
+    } else {
+      hidden.forEach(col => {
+        const id   = col.getColId();
+        const name = col.getColDef().headerName || id;
+        const item = document.createElement('div');
+        item.className = 'col-item';
+        item.innerHTML = `<input type="checkbox"> ${name}`;
+        item.querySelector('input').addEventListener('change', function() {
+          window.gridApi.setColumnVisible(id, this.checked);
+        });
+        colSubmenu.appendChild(item);
+      });
+    }
+    const rect = ctxMenu.getBoundingClientRect();
+    colSubmenu.style.display = 'block';
+    colSubmenu.style.left    = (rect.right + 4) + 'px';
+    colSubmenu.style.top     = rect.top + 'px';
+  });
+
+  colSubmenu.addEventListener('click', e => e.stopPropagation());
+})();
+
 // Lance l'initialisation au chargement de la page
 init().then(() => {
   // Applique le filtre de couleur sur toutes les icônes des en-têtes
@@ -743,7 +896,9 @@ init().then(() => {
         'pointer-events:none; z-index:1000;' +
         'opacity:0; transition:opacity 0.12s ease;' +
         'background:linear-gradient(to ' + (dir === 'left' ? 'right' : 'left') + ',' +
-        'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%);';
+        (dir === 'left'
+          ? 'rgba(30,30,30,0.23) 0%, rgba(30,30,30,0.10) 60%, transparent 100%)'
+          : 'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%)') + ';';
       // Le conteneur du tableau doit être en position relative pour que
       // l'absolute fonctionne correctement à l'intérieur
       gridEl.style.position = 'relative';
