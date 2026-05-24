@@ -21,12 +21,12 @@
   #myGrid { width: 100%; height: 100vh; }
 
   /* ── THÈME LIGHT (défaut) ─────────────────────────────── */
-  body.theme-light { background: #F0F2F7; } /* App Background WeWeb light */
+  body.theme-light { background: #F0F2F7; }
   body.theme-light .ag-theme-alpine { --ag-background-color: #E2E6F0; --ag-odd-row-background-color: #F0F2F7; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #B8C4D4; --ag-row-border-color: #B8C4D4; --ag-foreground-color: #1C2B3A; --ag-secondary-foreground-color: #6B6860; }
 
   /* ── THÈME DARK ───────────────────────────────────────── */
   body.theme-dark { background: #1E2A3A; } /* Couleur Background WeWeb dark */
-  body.theme-dark .ag-theme-alpine { --ag-background-color: #1E2A3A; --ag-odd-row-background-color: #162231; --ag-header-background-color: #0D1117; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #E8F4F8; --ag-header-foreground-color: #00B4CC; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
+  body.theme-dark .ag-theme-alpine { --ag-background-color: #1E2A3A; --ag-odd-row-background-color: #162231; --ag-header-background-color: #1A3A5C; --ag-header-foreground-color: #FFFFFF; --ag-border-color: #2C5F8A; --ag-row-border-color: #2C5F8A; --ag-foreground-color: #E8F4F8; --ag-secondary-foreground-color: #6B8FA8; --ag-selected-row-background-color: #2C5F8A33; --ag-range-selection-border-color: #00B4CC; }
 
   /* Lignes impaires — overridé par les variables AG Grid ci-dessus */
   /* On garde la classe pour compatibilité mais les variables priment */
@@ -40,9 +40,27 @@
   /* Cellules : taille 13px, retour à la ligne, interligne 1.4 */
   .ag-cell { font-size: 13px; padding-left: 4px !important; padding-right: 4px !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Cellules éditables : cyan très atténué en light, bleu foncé en dark */
-  body.theme-light .editable-cell { background-color: #E8F7F9 !important; }
-  body.theme-dark .editable-cell { background-color: #1A3A5C !important; }
+  /* En-têtes colonnes saisie opérateur */
+  body.theme-light .ag-header-cell.editable-header { background-color: #EBF3FA !important; }
+  body.theme-light .ag-header-cell.editable-header .ag-header-cell-label { color: #1A3A5C !important; }
+  body.theme-dark .ag-header-cell.editable-header { background-color: #EBF3FA !important; }
+  body.theme-dark .ag-header-cell.editable-header .ag-header-cell-label { color: #0096AA !important; }
+
+  /* ── COULEURS DE LIGNES PAR STATUT ───────────────────── */
+  .row-available { background-color: #E8F5E9 !important; }
+  .row-available.row-odd { background-color: #D6EDD8 !important; }
+  body.theme-dark .row-available { background-color: #1A3A20 !important; }
+  body.theme-dark .row-available.row-odd { background-color: #152E1A !important; }
+
+  .row-stop-active { background-color: #FFEBEE !important; }
+  .row-stop-active.row-odd { background-color: #FDDCDF !important; }
+  body.theme-dark .row-stop-active { background-color: #3A1A1A !important; }
+  body.theme-dark .row-stop-active.row-odd { background-color: #2E1515 !important; }
+
+  .row-stop-planned { background-color: #FFF3E0 !important; }
+  .row-stop-planned.row-odd { background-color: #FFE9C8 !important; }
+  body.theme-dark .row-stop-planned { background-color: #3A2A10 !important; }
+  body.theme-dark .row-stop-planned.row-odd { background-color: #2E200D !important; }
 
   /* Curseur drag */
   .ag-row-drag { cursor: grab; }
@@ -61,55 +79,8 @@
   body.theme-light .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover { background: #1A3A5C; }
   body.theme-dark .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover { background: #7EEAF5; }
 
-  /* ── BARRE DE ZOOM ───────────────────────────────────────── */
-  #zoom-bar {
-    position: fixed; bottom: 10px; left: 10px; z-index: 9999;
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(44, 95, 138, 0.55); border-radius: 20px;
-    padding: 4px 10px; backdrop-filter: blur(6px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
-  body.theme-light #zoom-bar { background: rgba(224, 232, 242, 0.85); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  #zoom-btn { background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 700; line-height: 1; padding: 0 2px; }
-  body.theme-dark #zoom-btn { color: #E8F4F8; }
-  body.theme-light #zoom-btn { color: #1A3A5C; }
-  #zoom-btn:hover { color: #00B4CC; }
-  #zoom-slider { -webkit-appearance: none; width: 80px; height: 4px; border-radius: 2px; outline: none; cursor: pointer; background: #2C5F8A; }
-  body.theme-light #zoom-slider { background: #B8C4D4; }
-  #zoom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #00B4CC; cursor: pointer; }
-  #zoom-label { font-size: 11px; font-weight: 600; min-width: 34px; text-align: right; }
-  body.theme-dark #zoom-label { color: #E8F4F8; }
-  body.theme-light #zoom-label { color: #1A3A5C; }
-
-  /* ── MENU CONTEXTUEL ─────────────────────────────────────── */
-  #ctx-menu {
-    display: none; position: fixed; z-index: 99999;
-    background: #1E2A3A; border: 1px solid #2C5F8A;
-    border-radius: 8px; padding: 4px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4); min-width: 180px;
-  }
-  body.theme-light #ctx-menu { background: #fff; border-color: #B8C4D4; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-  .ctx-item { padding: 7px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-  body.theme-dark .ctx-item { color: #E8F4F8; }
-  body.theme-light .ctx-item { color: #1A3A5C; }
-  .ctx-item:hover { background: rgba(0,180,204,0.12); }
-  .ctx-item.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-  .ctx-sep { height: 1px; margin: 4px 0; background: #2C5F8A; }
-  body.theme-light .ctx-sep { background: #E5E7EB; }
-
-  /* Sous-menu colonnes */
-  #col-submenu {
-    display: none; position: fixed; z-index: 100000;
-    background: #1E2A3A; border: 1px solid #2C5F8A;
-    border-radius: 8px; padding: 4px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4); min-width: 200px; max-height: 320px; overflow-y: auto;
-  }
-  body.theme-light #col-submenu { background: #fff; border-color: #B8C4D4; }
-  .col-item { padding: 6px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-  body.theme-dark .col-item { color: #E8F4F8; }
-  body.theme-light .col-item { color: #1A3A5C; }
-  .col-item:hover { background: rgba(0,180,204,0.12); }
-  .col-item input[type=checkbox] { accent-color: #00B4CC; }
+  /* Icônes dans les en-têtes */
+  .ag-header-cell-label img { vertical-align: middle; margin-right: 2px; }
 
   /* ── ASCENSEUR MIROIR EN HAUT ────────────────────────────── */
   /* Conteneur du tableau + scrollbar miroir empilés verticalement */
@@ -142,27 +113,12 @@
 
 <!-- ── Wrapper : scrollbar miroir (haut) + tableau ── -->
 <div id="grid-wrapper">
+  <!-- Scrollbar miroir positionné AU-DESSUS des en-têtes AG Grid -->
+  <!-- Sa largeur interne est synchronisée avec le contenu du tableau -->
   <div id="top-scroll"><div id="top-scroll-inner"></div></div>
+  <!-- Conteneur du tableau AG Grid avec le thème Alpine appliqué -->
   <div id="myGrid" class="ag-theme-alpine"></div>
 </div>
-
-<!-- Barre de zoom -->
-<div id="zoom-bar">
-  <button class="zoom-btn" id="zoom-out">−</button>
-  <input type="range" id="zoom-slider" min="60" max="150" value="100" step="5">
-  <button class="zoom-btn" id="zoom-in">+</button>
-  <span id="zoom-label">100%</span>
-</div>
-
-<!-- Menu contextuel -->
-<div id="ctx-menu">
-  <div class="ctx-item" id="ctx-add-col">＋ Ajouter une colonne</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item" id="ctx-hide-col">✕ Masquer cette colonne</div>
-</div>
-
-<!-- Sous-menu colonnes -->
-<div id="col-submenu"></div>
 <div id="cell-popup" style="
   display:none; position:fixed; z-index:9999;
   background:#1C2B3A; color:#E8F4F8;
@@ -458,13 +414,13 @@ async function init() {
 
     // ── Dates et saisies opérateur ───────────────────────────────────────────
     { field: 'theoretical_start', headerName: 'Début théorique', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
-    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span></div>' } },
-    { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></span></div>' } },
-    { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
+    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
+    { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span></div>' } },
+    { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></span></div>' } },
+    { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 22, width: 30, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellStyle: { textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }, headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></div>' } },
     { field: 'theoretical_end', headerName: 'Fin théorique', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
-    { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Qté conforme', headerTooltip: 'Quantité conforme saisie par l\'opérateur (entier ≥ 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell',
+    { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
+    { field: 'final_quantity', headerName: 'Quantité finale', headerTooltip: 'Quantité réellement produite — saisie opérateur (doit être un entier supérieur ou égal à 0)', minWidth: 45, width: 55, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -476,17 +432,17 @@ async function init() {
         return true;
       }
     },
-    { field: 'final_comment', headerName: 'Commentaire final', headerTooltip: 'Commentaire de clôture de l\'opération — saisie opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell' },
+    { field: 'final_comment', headerName: 'Commentaire final', headerTooltip: 'Commentaire de clôture de l\'opération — saisie opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'editable-header' },
     {
       field: 'operator_id', minWidth: 50,
       headerTooltip: 'Opérateur assigné à cette opération',
       headerComponentParams: { template: '<div class="ag-cell-label-container"><span class="ag-header-cell-label"><img src="data:image/png;base64,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" width="13" height="13" style="vertical-align:middle;margin-right:2px;" class="header-icon">?</span></div>' },
-      editable: true, cellClass: 'editable-cell',
+      editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       cellEditor: PersonnelEditor, cellEditorParams: { operators },
       cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
     },
-    { field: 'final_quantity_ko', headerName: 'Qté non conforme', headerTooltip: 'Quantité non conforme saisie par l\'opérateur', minWidth: 65, width: 90, editable: true, cellClass: 'editable-cell', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
-    { field: 'closed_at', headerName: 'Terminé le', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'editable-cell' },
+    { field: 'signature', headerName: 'Signature', headerTooltip: 'Signature de clôture de l\'opération', minWidth: 70 },
+    { field: 'signature_at', headerName: 'Signature le', headerTooltip: 'Date et heure de la signature', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
     // ── Colonnes secondaires ─────────────────────────────────────────────────
@@ -584,11 +540,13 @@ async function init() {
     // Règles de style par ligne : applique la classe 'row-odd' sur les lignes impaires
     rowClassRules: {
       'row-odd': p => p.node.rowIndex % 2 !== 0,
+      'row-available': p => p.data?.status === 'disponible' || p.data?.status === 'available',
+      'row-stop-active': p => p.data?.status === 'arrêt en cours' || p.data?.status === 'stop_active',
+      'row-stop-planned': p => p.data?.status === 'arrêt programmé' || p.data?.status === 'stop_planned',
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
     onGridReady: params => {
-      window.gridApi = params.api; // Expose l'API globalement pour le menu contextuel
       // Restaure l'état des colonnes sauvegardé par l'admin (si disponible)
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved && isAdmin) {
@@ -669,86 +627,6 @@ async function init() {
   agGrid.createGrid(gridDiv, gridOptions);
 }
 
-// Lance l'initialisation au chargement de la page
-init().then(() => {
-  setTimeout(() => {
-    document.querySelectorAll('.header-icon').forEach(img => {
-      img.style.filter = ICON_FILTER;
-    });
-  }, 200);
-
-  setTimeout(() => {
-    const topScroll  = document.getElementById('top-scroll');
-    const topInner   = document.getElementById('top-scroll-inner');
-    const agViewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
-    if (!topScroll || !topInner || !agViewport) return;
-    function syncWidth() {
-      const pinnedLeft  = document.querySelector('.ag-pinned-left-cols-container');
-      const pinnedRight = document.querySelector('.ag-pinned-right-cols-container');
-      const pinnedLeftW  = pinnedLeft  ? pinnedLeft.offsetWidth  : 0;
-      const pinnedRightW = pinnedRight ? pinnedRight.offsetWidth : 0;
-      topInner.style.width = (pinnedLeftW + agViewport.scrollWidth + pinnedRightW) + 'px';
-    }
-    syncWidth();
-    new ResizeObserver(syncWidth).observe(agViewport);
-    let syncing = false;
-    topScroll.addEventListener('scroll', () => {
-      if (syncing) return; syncing = true;
-      agViewport.scrollLeft = topScroll.scrollLeft;
-      syncing = false;
-    });
-    agViewport.addEventListener('scroll', () => {
-      if (syncing) return; syncing = true;
-      topScroll.scrollLeft = agViewport.scrollLeft;
-      syncing = false;
-    });
-  }, 500);
-
-  setTimeout(() => {
-    const viewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
-    const gridEl   = document.getElementById('myGrid');
-    const pinnedEl = document.querySelector('.ag-pinned-left-cols-container');
-    if (!viewport || !gridEl) return;
-    const ZONE = 120; const SPEED = 12; const MAX_OPAC = 0.95;
-    function makeOverlay(dir) {
-      const el = document.createElement('div');
-      el.style.cssText = 'position:absolute; top:0; width:' + ZONE + 'px; height:100%; pointer-events:none; z-index:1000; opacity:0; transition:opacity 0.12s ease; background:linear-gradient(to ' + (dir === 'left' ? 'right' : 'left') + ',' + (dir === 'left' ? 'rgba(30,30,30,0.46) 0%, rgba(30,30,30,0.20) 60%, transparent 100%)' : 'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%)');
-      gridEl.style.position = 'relative';
-      gridEl.appendChild(el);
-      return el;
-    }
-    const overlayLeft  = makeOverlay('left');
-    const overlayRight = makeOverlay('right');
-    overlayRight.style.right = '0';
-    let scrollDir = 0, scrollForce = 0, rafId = null;
-    function scrollLoop() {
-      if (scrollDir !== 0) { viewport.scrollLeft += scrollDir * scrollForce * SPEED; rafId = requestAnimationFrame(scrollLoop); }
-    }
-    function deactivate() {
-      scrollDir = 0; scrollForce = 0;
-      overlayLeft.style.opacity = 0; overlayRight.style.opacity = 0;
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    }
-    document.addEventListener('mousemove', function(e) {
-      const rect = gridEl.getBoundingClientRect();
-      if (e.clientY < rect.top || e.clientY > rect.bottom) { deactivate(); return; }
-      const pinnedWidth = pinnedEl ? pinnedEl.getBoundingClientRect().width : 0;
-      const distL = e.clientX - (rect.left + pinnedWidth);
-      const distR = rect.right - e.clientX;
-      if (distL < ZONE && distL >= 0) {
-        overlayLeft.style.left = pinnedWidth + 'px';
-        scrollDir = -1; scrollForce = 1 - distL / ZONE;
-        overlayLeft.style.opacity = scrollForce * MAX_OPAC; overlayRight.style.opacity = 0;
-      } else if (distR < ZONE && distR >= 0) {
-        scrollDir = 1; scrollForce = 1 - distR / ZONE;
-        overlayRight.style.opacity = scrollForce * MAX_OPAC; overlayLeft.style.opacity = 0;
-      } else { deactivate(); }
-      if (scrollDir !== 0 && !rafId) rafId = requestAnimationFrame(scrollLoop);
-    });
-    document.addEventListener('mouseleave', deactivate);
-  }, 600);
-});
-
 // ── ÉCOUTE DES MESSAGES postMessage DEPUIS WEWEB ────────────────────────────
 // WeWeb envoie un message { type: 'set-theme', theme: 'light'|'dark' }
 // quand l'utilisateur bascule le thème, sans recharger l'iframe.
@@ -773,112 +651,8 @@ window.addEventListener('message', function(event) {
   });
 });
 
-// ── BARRE DE ZOOM ────────────────────────────────────────────────────────────
-(function() {
-  const slider = document.getElementById('zoom-slider');
-  const label  = document.getElementById('zoom-label');
-  const zoomIn  = document.getElementById('zoom-in');
-  const zoomOut = document.getElementById('zoom-out');
-
-  function applyZoom(val) {
-    document.getElementById('myGrid').style.fontSize = (val / 100) + 'rem';
-    label.textContent = val + '%';
-    slider.value = val;
-  }
-
-  slider.addEventListener('input', () => applyZoom(parseInt(slider.value)));
-  zoomIn.addEventListener('click', () => applyZoom(Math.min(150, parseInt(slider.value) + 5)));
-  zoomOut.addEventListener('click', () => applyZoom(Math.max(60, parseInt(slider.value) - 5)));
-  applyZoom(100);
-})();
-
-// ── MENU CONTEXTUEL ──────────────────────────────────────────────────────────
-(function() {
-  // Colonnes protégées — ne peuvent pas être masquées
-  const PROTECTED = new Set([
-    'order_number','reference','wo_split_quantity','internal_lot','status',
-    'theoretical_start','theoretical_end','is_locked','locked_by','locked_at',
-    'seq_num','actual_start','actual_end','final_quantity','final_quantity_ko',
-    'final_comment','operator_id','closed_at'
-  ]);
-
-  const ctxMenu    = document.getElementById('ctx-menu');
-  const colSubmenu = document.getElementById('col-submenu');
-  const ctxAdd     = document.getElementById('ctx-add-col');
-  const ctxHide    = document.getElementById('ctx-hide-col');
-
-  let currentColId = null;
-
-  function closeAll() {
-    ctxMenu.style.display = 'none';
-    colSubmenu.style.display = 'none';
-  }
-
-  document.addEventListener('click', closeAll);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-
-  // Clic droit sur une cellule d'en-tête
-  document.addEventListener('contextmenu', function(e) {
-    const headerCell = e.target.closest('.ag-header-cell');
-    if (!headerCell) { closeAll(); return; }
-    e.preventDefault();
-
-    currentColId = headerCell.getAttribute('col-id');
-    const isProtected = PROTECTED.has(currentColId);
-
-    // Si colonne protégée : masquer l'option "Masquer" et le séparateur
-    ctxHide.style.display = isProtected ? 'none' : 'flex';
-    ctxMenu.querySelector('.ctx-sep').style.display = isProtected ? 'none' : 'block';
-
-    ctxMenu.style.display = 'block';
-    ctxMenu.style.left = e.clientX + 'px';
-    ctxMenu.style.top  = e.clientY + 'px';
-    colSubmenu.style.display = 'none';
-  });
-
-  // Masquer colonne
-  ctxHide.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (!window.gridApi || !currentColId) return;
-    window.gridApi.setColumnVisible(currentColId, false);
-    closeAll();
-  });
-
-  // Ajouter colonne — affiche le sous-menu
-  ctxAdd.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (!window.gridApi) return;
-
-    // Récupère toutes les colonnes masquées
-    const hidden = window.gridApi.getColumns().filter(c => !c.isVisible());
-    colSubmenu.innerHTML = '';
-
-    if (hidden.length === 0) {
-      colSubmenu.innerHTML = '<div class="col-item" style="opacity:0.5">Aucune colonne masquée</div>';
-    } else {
-      hidden.forEach(col => {
-        const id = col.getColId();
-        const name = col.getColDef().headerName || id;
-        const item = document.createElement('div');
-        item.className = 'col-item';
-        item.innerHTML = `<input type="checkbox"> ${name}`;
-        const cb = item.querySelector('input');
-        cb.addEventListener('change', () => {
-          window.gridApi.setColumnVisible(id, cb.checked);
-        });
-        colSubmenu.appendChild(item);
-      });
-    }
-
-    const rect = ctxMenu.getBoundingClientRect();
-    colSubmenu.style.display = 'block';
-    colSubmenu.style.left = (rect.right + 4) + 'px';
-    colSubmenu.style.top  = rect.top + 'px';
-  });
-
-  colSubmenu.addEventListener('click', e => e.stopPropagation());
-})();
-
+// Lance l'initialisation au chargement de la page
+init().then(() => {
   // Applique le filtre de couleur sur toutes les icônes des en-têtes
   // après que le tableau est initialisé et les en-têtes rendus dans le DOM
   setTimeout(() => {
@@ -887,6 +661,178 @@ window.addEventListener('message', function(event) {
     });
   }, 200);
 
+  // ── ASCENSEUR MIROIR EN HAUT — SYNCHRONISATION ───────────────────────────────
+  // Le div #top-scroll est un scrollbar miroir placé au-dessus des headers.
+  // Son enfant #top-scroll-inner a la même largeur que le contenu du tableau,
+  // ce qui crée une zone scrollable identique. Les deux scrollbars sont
+  // synchronisés de façon bidirectionnelle : scroller l'un déplace l'autre.
+  setTimeout(() => {
+    const topScroll  = document.getElementById('top-scroll');
+    const topInner   = document.getElementById('top-scroll-inner');
+    const agViewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
+    if (!topScroll || !topInner || !agViewport) return;
+
+    // ── Ajuste la largeur de l'enfant miroir ─────────────────────────────
+    // AG Grid sépare les colonnes épinglées (pinned) et le corps scrollable
+    // dans deux conteneurs distincts. Le scrollWidth du viewport ne couvre
+    // que le corps scrollable — il faut y ajouter la largeur des colonnes
+    // épinglées gauche et droite pour obtenir la largeur totale réelle.
+    function syncWidth() {
+      const pinnedLeft  = document.querySelector('.ag-pinned-left-cols-container');
+      const pinnedRight = document.querySelector('.ag-pinned-right-cols-container');
+      const pinnedLeftW  = pinnedLeft  ? pinnedLeft.offsetWidth  : 0;
+      const pinnedRightW = pinnedRight ? pinnedRight.offsetWidth : 0;
+      // Largeur totale = colonnes épinglées gauche + corps scrollable + colonnes épinglées droite
+      topInner.style.width = (pinnedLeftW + agViewport.scrollWidth + pinnedRightW) + 'px';
+    }
+    syncWidth();
+    // Recalcule si les colonnes sont redimensionnées (ResizeObserver)
+    new ResizeObserver(syncWidth).observe(agViewport);
+
+    // ── Synchronisation bidirectionnelle ──────────────────────────────────
+    // Drapeau pour éviter les boucles infinies (scroll A → B → A → ...)
+    let syncing = false;
+
+    // Quand l'utilisateur scrolle le miroir du haut → déplace AG Grid
+    topScroll.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      agViewport.scrollLeft = topScroll.scrollLeft;
+      syncing = false;
+    });
+
+    // Quand AG Grid scrolle (via sa propre scrollbar ou le scroll auto) → déplace le miroir
+    agViewport.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      topScroll.scrollLeft = agViewport.scrollLeft;
+      syncing = false;
+    });
+  }, 500);
+
+  // ── SCROLL AUTOMATIQUE SUR LES BORDS ─────────────────────────────────────
+  // Quand la souris s'approche du bord gauche ou droit du tableau,
+  // le tableau scrolle automatiquement. Vitesse proportionnelle à la proximité.
+  setTimeout(() => {
+    // ── Récupère les éléments nécessaires ────────────────────────────────
+    // viewport : la barre de scroll horizontale native d'AG Grid
+    // gridEl   : le conteneur principal du tableau
+    // pinnedEl : le panneau des colonnes épinglées à gauche (pour calculer
+    //            le bord gauche réel de la zone scrollable)
+    const viewport = document.querySelector('.ag-body-horizontal-scroll-viewport');
+    const gridEl   = document.getElementById('myGrid');
+    const pinnedEl = document.querySelector('.ag-pinned-left-cols-container');
+    if (!viewport || !gridEl) return;
+
+    // ── Constantes de comportement ────────────────────────────────────────
+    const ZONE      = 120;  // largeur en px de la zone de détection sur chaque bord
+    const SPEED     = 12;   // vitesse maximale en px par frame d'animation
+    const MAX_OPAC  = 0.95; // opacité maximale de l'overlay (0 = invisible, 1 = plein)
+
+    // ── Création des overlays gauche et droit ─────────────────────────────
+    // Les overlays sont en position:absolute dans le conteneur du tableau
+    // (pas fixed) afin de coller exactement aux bords visuels du tableau.
+    // L'overlay gauche est positionné dynamiquement au bord droit des
+    // colonnes épinglées (recalculé à chaque mousemove).
+    // pointer-events: none = ne bloque pas les clics de l'utilisateur.
+    function makeOverlay(dir) {
+      const el = document.createElement('div');
+      el.style.cssText =
+        'position:absolute; top:0;' +
+        'width:' + ZONE + 'px; height:100%;' +
+        'pointer-events:none; z-index:1000;' +
+        'opacity:0; transition:opacity 0.12s ease;' +
+        'background:linear-gradient(to ' + (dir === 'left' ? 'right' : 'left') + ',' +
+        'rgba(30,30,30,0.92) 0%, rgba(30,30,30,0.40) 60%, transparent 100%);';
+      // Le conteneur du tableau doit être en position relative pour que
+      // l'absolute fonctionne correctement à l'intérieur
+      gridEl.style.position = 'relative';
+      gridEl.appendChild(el);
+      return el;
+    }
+    const overlayLeft  = makeOverlay('left');
+    const overlayRight = makeOverlay('right');
+
+    // Positionne l'overlay droit sur le bord droit du tableau
+    overlayRight.style.right = '0';
+
+    // ── État du scroll automatique ────────────────────────────────────────
+    let scrollDir   = 0;    // direction : -1 = gauche, +1 = droite, 0 = inactif
+    let scrollForce = 0;    // intensité entre 0 (bord zone) et 1 (bord écran)
+    let rafId       = null; // id de la boucle requestAnimationFrame en cours
+
+    // ── Boucle d'animation ────────────────────────────────────────────────
+    // Appelée à chaque frame (≈60fps) tant que scrollDir != 0.
+    // Déplace le viewport proportionnellement à la force calculée.
+    function scrollLoop() {
+      if (scrollDir !== 0) {
+        viewport.scrollLeft += scrollDir * scrollForce * SPEED;
+        rafId = requestAnimationFrame(scrollLoop);
+      }
+    }
+
+    // ── Suivi de la souris ────────────────────────────────────────────────
+    document.addEventListener('mousemove', function(e) {
+      const rect = gridEl.getBoundingClientRect();
+
+      // Si la souris est hors de la hauteur du tableau → on désactive
+      if (e.clientY < rect.top || e.clientY > rect.bottom) {
+        deactivate(); return;
+      }
+
+      // Largeur des colonnes épinglées à gauche (0 si absentes)
+      // Définit le bord gauche réel de la zone scrollable
+      const pinnedWidth = pinnedEl ? pinnedEl.getBoundingClientRect().width : 0;
+
+      // Distance depuis le bord droit du panneau épinglé (= bord gauche scrollable)
+      const distL = e.clientX - (rect.left + pinnedWidth);
+      // Distance depuis le bord droit du tableau
+      const distR = rect.right - e.clientX;
+
+      if (distL < ZONE && distL >= 0) {
+        // ── Zone gauche (juste après les colonnes épinglées) ──────────────
+        // Positionne l'overlay gauche exactement au bord droit des pinned,
+        // en coordonnées relatives au conteneur du tableau (position:absolute)
+        overlayLeft.style.left = pinnedWidth + 'px';
+        // Plus on est proche du panneau épinglé, plus la force est grande
+        scrollDir   = -1;
+        scrollForce = 1 - distL / ZONE;
+        overlayLeft.style.opacity  = scrollForce * MAX_OPAC;
+        overlayRight.style.opacity = 0;
+
+      } else if (distR < ZONE && distR >= 0) {
+        // ── Zone droite ───────────────────────────────────────────────────
+        // Plus on est proche du bord droit, plus la force est grande
+        scrollDir   = 1;
+        scrollForce = 1 - distR / ZONE;
+        overlayRight.style.opacity = scrollForce * MAX_OPAC;
+        overlayLeft.style.opacity  = 0;
+
+      } else {
+        // ── Zone neutre → on arrête tout ─────────────────────────────────
+        deactivate();
+      }
+
+      // Lance la boucle d'animation si elle n'est pas déjà active
+      if (scrollDir !== 0 && !rafId) {
+        rafId = requestAnimationFrame(scrollLoop);
+      }
+    });
+
+    // Désactive le scroll si la souris quitte la fenêtre
+    document.addEventListener('mouseleave', deactivate);
+
+    // ── Désactivation complète ────────────────────────────────────────────
+    // Remet tout à zéro : direction, force, overlays, boucle d'animation
+    function deactivate() {
+      scrollDir   = 0;
+      scrollForce = 0;
+      overlayLeft.style.opacity  = 0;
+      overlayRight.style.opacity = 0;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+  }, 600);
+});
 </script>
 </body>
 </html>
