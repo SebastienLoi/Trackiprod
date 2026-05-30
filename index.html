@@ -883,7 +883,7 @@ function initZoom() {
     const bs  = document.getElementById('bottom-scroll');
     if (!bar) return;
     const scale = parseFloat(document.getElementById('grid-wrapper').style.transform.replace(/scale\(|\)/g, '')) || 1;
-    const barW = Math.round(pinnedWidth * scale);
+    const barW = Math.round(pinnedWidth); // largeur fixe indépendante du zoom
     bar.style.left   = '0px';
     bar.style.width  = barW + 'px';
     bar.style.bottom = '0px';
@@ -1040,7 +1040,7 @@ init().then(() => {
       const centerVp2 = document.querySelector('.ag-center-cols-viewport');
       if (!centerVp2) return;
       const scl = parseFloat(document.getElementById('grid-wrapper').style.transform.replace(/scale\(|\)/g, '')) || 1;
-      const bsTrack = Math.max(1, window.innerWidth - Math.round(pinnedWidth * scl));
+      const bsTrack = Math.max(1, window.innerWidth - Math.round(pinnedWidth)); // fixe
       const agScrollMax = Math.max(0, centerVp2.scrollWidth - bsTrack / scale);
       const innerW = bsTrack + agScrollMax;
       if (bottomInner) bottomInner.style.width = innerW + 'px';
