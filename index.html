@@ -41,6 +41,18 @@
   .ag-header-cell-label { font-weight: 600; font-size: 12px; }
   .ag-header-cell { padding-left: 6px !important; padding-right: 16px !important; }
   /* Titres des colonnes épinglées (non masquables) en gras */
+  /* ── VERROUILLAGE SAISIE PARTIELLE ─────────────────────────────────────── */
+  /* Griser tout sauf la ligne active */
+  .ag-theme-alpine.saisie-en-cours .ag-row:not(.saisie-active) .ag-cell {
+    background-color: #6B7280 !important;
+    pointer-events: none !important;
+  }
+  /* Sur la ligne active, griser tout sauf les 5 cellules libres */
+  .ag-theme-alpine.saisie-en-cours .ag-row.saisie-active .ag-cell:not([col-id="actual_end"]):not([col-id="final_quantity"]):not([col-id="final_quantity_ko"]):not([col-id="operator_id"]):not([col-id="final_comment"]) {
+    background-color: #6B7280 !important;
+    pointer-events: none !important;
+  }
+
   /* Colonnes non-masquables : titre en gras */
   .ag-header-cell.permanent-header .ag-header-cell-text { font-weight: 700 !important; }
   /* Colonnes avec template custom (operator_id, is_locked, locked_by, locked_at) */
@@ -341,7 +353,7 @@ class DateTimeEditor {
     btnCancel.style.cssText = 'padding:6px 16px;border-radius:6px;border:1px solid ' +
       (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') + ';background:transparent;cursor:pointer;' +
       'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';font-size:13px;';
-    btnCancel.addEventListener('click', () => { this.resolved = true; params.api.stopEditing(true); });
+    btnCancel.addEventListener('click', () => { this.value = null; this.resolved = true; params.api.stopEditing(false); });
 
     const btnOk = document.createElement('button');
     btnOk.textContent = 'Valider';
@@ -517,6 +529,38 @@ async function loadData(api) {
   api.updateGridOptions({ rowData: data });
 }
 
+
+// ── VERROUILLAGE SAISIE PARTIELLE ───────────────────────────────────────────
+// Les 4 champs à saisir ensemble : fin réelle, qté OK, qté rebuts, opérateur
+const GROUPE_FIELDS = new Set(['actual_end','final_quantity','final_quantity_ko','operator_id']);
+// Colonnes AG Grid correspondantes (pour styliser les cellules)
+const GROUPE_COL_IDS = new Set(['actual_end','final_quantity','final_quantity_ko','operator_id']);
+
+window._lockRowId = null; // id de la ligne en cours de saisie
+
+function updateSaisielock(api, rowData) {
+  const id = rowData.id;
+  const hasFin      = rowData.actual_end        != null && rowData.actual_end !== '';
+  const hasQtyOk    = rowData.final_quantity     != null && rowData.final_quantity !== '';
+  const hasQtyNotok = rowData.final_quantity_ko  != null && rowData.final_quantity_ko !== '';
+  const hasOp       = rowData.operator_id        != null && rowData.operator_id !== 0 && rowData.operator_id !== '';
+  const anyFilled   = hasFin || hasQtyOk || hasQtyNotok || hasOp;
+  const allFilled   = hasFin && hasQtyOk && hasQtyNotok && hasOp;
+  const grid        = document.getElementById('myGrid');
+
+  // Toujours nettoyer d'abord
+  window._lockRowId = null;
+  grid.classList.remove('saisie-en-cours');
+
+  if (anyFilled && !allFilled) {
+    window._lockRowId = id;
+    // rowClassRules applique automatiquement saisie-active via _lockRowId
+    api.redrawRows();
+    grid.classList.add('saisie-en-cours');
+  } else {
+    api.redrawRows();
+  }
+}
 
 // ── MISE À JOUR D'UNE LIGNE EN BASE ─────────────────────────────────────────
 // Envoie un PATCH à Supabase pour mettre à jour un seul champ d'une ligne
@@ -735,6 +779,7 @@ async function init() {
       'row-available':    p => ['disponible', 'available'].includes(p.data?.status),
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
+      'saisie-active':    p => p.data?.id != null && p.data.id === window._lockRowId,
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
@@ -761,6 +806,13 @@ async function init() {
 
       // Charge les données depuis Supabase
       loadData(params.api);
+
+      // ── POLLING 60s : recharge les données sans perturber une saisie en cours ──
+      setInterval(() => {
+        // Ne pas recharger si une saisie partielle est en cours (lockRow actif)
+        if (window._lockRowId != null) return;
+        loadData(params.api);
+      }, 60000);
 
       // Initialise la barre de zoom — retry jusqu'à ce que AG Grid ait rendu le left-spacer
       // Init zoom après un délai suffisant pour que AG Grid ait calculé les largeurs
@@ -832,6 +884,10 @@ async function init() {
     // Envoie le changement à Supabase immédiatement
     onCellValueChanged: async params => {
       await patchRow(params.data.id, params.colDef.field, params.newValue);
+      // Mise à jour du verrouillage de saisie si champ de groupe
+      if (['actual_end','final_quantity','final_quantity_ko','operator_id'].includes(params.colDef.field)) {
+        updateSaisielock(params.api, params.data);
+      }
     },
   };
 
