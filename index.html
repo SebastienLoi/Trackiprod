@@ -71,13 +71,20 @@
   /* ── CELLULES SAISIE OPÉRATEUR ──────────────────────────── */
   /* Curseur main au survol uniquement */
   .editable-cell:hover { cursor: pointer !important; }
-  /* Colonnes checkbox M/S/N : pas de transparence, curseur pointer, clic géré par onCellClicked */
+  /* Bloquer les tooltips sur les colonnes checkbox M/S/N */
+  .ag-cell[col-id="lunch_overlap"] *,
+  .ag-cell[col-id="evening_overlap"] *,
+  .ag-cell[col-id="night_shift"] * { pointer-events: none !important; }
+  .ag-cell[col-id="lunch_overlap"],
+  .ag-cell[col-id="evening_overlap"],
+  .ag-cell[col-id="night_shift"] { pointer-events: all !important; }
   .ag-cell[col-id="lunch_overlap"],
   .ag-cell[col-id="evening_overlap"],
   .ag-cell[col-id="night_shift"] { opacity: 1 !important; cursor: pointer !important; }
   .ag-cell[col-id="lunch_overlap"] .ag-checkbox-input-wrapper,
   .ag-cell[col-id="evening_overlap"] .ag-checkbox-input-wrapper,
   .ag-cell[col-id="night_shift"] .ag-checkbox-input-wrapper { opacity: 1 !important; pointer-events: none; }
+
 
   /* Surbrillance uniquement sur la cellule editable survolée */
   .editable-cell:hover {
@@ -344,12 +351,24 @@ class DateTimeEditor {
     this.iframe.style.cssText = 'width:700px;height:400px;border:none;border-radius:8px;';
     this.container.appendChild(this.iframe);
 
-    // Boutons Valider / Annuler
+    // Croix de fermeture en haut à droite (ferme sans effacer)
+    const btnClose = document.createElement('button');
+    btnClose.textContent = '✕';
+    btnClose.style.cssText = 'position:absolute;top:8px;right:10px;background:transparent;border:none;' +
+      'cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;' +
+      'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';';
+    btnClose.title = 'Fermer sans modifier';
+    btnClose.addEventListener('click', () => { this.resolved = true; params.api.stopEditing(true); });
+    this.container.style.position = 'fixed'; // s'assurer que position:absolute de la croix fonctionne
+    this.container.style.setProperty('position', 'fixed');
+    this.container.appendChild(btnClose);
+
+    // Boutons Effacer / Valider
     const btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;';
 
     const btnCancel = document.createElement('button');
-    btnCancel.textContent = 'Annuler';
+    btnCancel.textContent = 'Effacer';
     btnCancel.style.cssText = 'padding:6px 16px;border-radius:6px;border:1px solid ' +
       (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') + ';background:transparent;cursor:pointer;' +
       'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';font-size:13px;';
@@ -444,21 +463,33 @@ class PersonnelEditor {
     // Option vide par défaut (pour désélectionner)
     const empty = document.createElement('option');
     empty.value = '';
-    empty.text = '— Sélectionner —';
+    empty.text = '✕ Annuler la sélection';
     this.select.appendChild(empty);
 
     // Ajoute une option par opérateur actif chargé depuis Supabase
     (params.operators || []).forEach(op => {
       const opt = document.createElement('option');
-      opt.value = op.id;                           // id numérique de l'opérateur
-      opt.text = `${op.trigram} — ${op.full_name}`; // Affichage : "ABC — Alfred BCA"
-      if (op.id === params.value) opt.selected = true; // Présélectionne la valeur actuelle
+      opt.value = op.id;
+      opt.text = `${op.trigram} — ${op.full_name}`;
+      if (op.id === params.value) opt.selected = true;
       this.select.appendChild(opt);
+    });
+
+    // Déclencher updateSaisielock immédiatement au changement de sélection
+    this.select.addEventListener('change', () => {
+      const newVal = this.select.value ? parseInt(this.select.value) : null;
+      const updatedData = { ...params.data, operator_id: newVal };
+      if (typeof updateSaisielock === 'function') {
+        updateSaisielock(params.api, updatedData);
+      }
     });
   }
 
   getGui() { return this.select; }
-  afterGuiAttached() { this.select.focus(); setTimeout(() => this.select.click(), 0); }
+  afterGuiAttached() {
+    this.select.focus();
+    try { this.select.showPicker(); } catch(e) { this.select.click(); }
+  }
 
   // Retourne l'id numérique sélectionné, ou null si aucun
   getValue() { return this.select.value ? parseInt(this.select.value) : null; }
@@ -671,7 +702,7 @@ async function init() {
       field: 'operator_id', minWidth: 50, width: 60,
       headerTooltip: 'Opérateur assigné à cette opération',
       headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>?</div></div>' },
-      editable: true, cellClass: 'editable-cell', headerClass: 'editable-header',
+      editable: true, singleClickEdit: true, cellClass: 'editable-cell', headerClass: 'editable-header',
       cellEditor: PersonnelEditor, cellEditorParams: { operators },
       cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
     },
@@ -748,7 +779,8 @@ async function init() {
     // Drag & drop de lignes géré par AG Grid — admin uniquement
     headerHeight: 48,
     tooltipShowDelay: 300,
-    suppressMenuHide: true,   // Affiche en permanence le bouton menu (entonnoir) dans les en-têtes
+    suppressMenuHide: true,
+    suppressCellFlash: true,   // Affiche en permanence le bouton menu (entonnoir) dans les en-têtes
     rowDragManaged: isAdmin,
     singleClickEdit: true,
 
@@ -817,6 +849,8 @@ async function init() {
       // Initialise la barre de zoom — retry jusqu'à ce que AG Grid ait rendu le left-spacer
       // Init zoom après un délai suffisant pour que AG Grid ait calculé les largeurs
       setTimeout(initZoom, 800);
+
+
       // Force l'affichage permanent des boutons menu (entonnoir) dans les en-têtes
       // AG Grid 31 les masque via opacity:0 par défaut et ne les montre qu'au survol
       setTimeout(() => {
@@ -884,7 +918,12 @@ async function init() {
     // Envoie le changement à Supabase immédiatement
     onCellValueChanged: async params => {
       await patchRow(params.data.id, params.colDef.field, params.newValue);
-      // Mise à jour du verrouillage de saisie si champ de groupe
+      if (['actual_end','final_quantity','final_quantity_ko','operator_id'].includes(params.colDef.field)) {
+        updateSaisielock(params.api, params.data);
+      }
+    },
+    // Déclencher aussi à la fin d'édition (même si valeur identique)
+    onCellEditingStopped: params => {
       if (['actual_end','final_quantity','final_quantity_ko','operator_id'].includes(params.colDef.field)) {
         updateSaisielock(params.api, params.data);
       }
