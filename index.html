@@ -593,9 +593,9 @@ function updateSaisielock(api, rowData) {
   }
 }
 
+let _recomputeTimer = null;
+
 // ── MISE À JOUR D'UNE LIGNE EN BASE ─────────────────────────────────────────
-// Envoie un PATCH à Supabase pour mettre à jour un seul champ d'une ligne
-// Appelée après chaque modification de cellule (onCellValueChanged) et après drag
 async function patchRow(id, field, value) {
   await fetch(`${SUPABASE_URL}/rest/v1/work_orders_operations?id=eq.${id}`, {
     method: 'PATCH',
@@ -607,6 +607,36 @@ async function patchRow(id, field, value) {
     },
     body: JSON.stringify({ [field]: value })
   });
+  triggerRecompute(); // relance le planning (débounce)
+}
+
+// ── RELANCE DU RECALCUL GLOBAL (débounce) ────────────────────────────────────
+// Toute modif prod passe par patchRow → on déclenche le recompute, mais débouncé :
+// une rafale de PATCH (saisie de plusieurs cellules, drag de N lignes) = 1 seul recompute.
+function triggerRecompute() {
+  clearTimeout(_recomputeTimer);
+  _recomputeTimer = setTimeout(async () => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_recompute_planning`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: '{}'
+      });
+      // Recharge la grille pour afficher les dates recalculées,
+      // SAUF si une saisie partielle ou une édition de cellule est en cours
+      // (sinon on écraserait ce que l'opérateur est en train de taper).
+      const editing = window.gridApi?.getEditingCells?.().length > 0;
+      if (window._lockRowId == null && !editing && window.gridApi) {
+        await loadData(window.gridApi);
+      }
+    } catch (e) {
+      console.error('recompute failed', e);
+    }
+  }, 1200); // 1,2 s après la dernière modif
 }
 
 // Alias pour les champs booléens (checkbox M/S/N)
