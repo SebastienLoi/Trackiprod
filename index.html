@@ -432,6 +432,13 @@ class DateTimeRenderer {
     // Crée un span pour afficher la valeur formatée
     this.eGui = document.createElement('span');
 
+    // Lignes ARRET : colonnes théoriques non applicables → "-"
+    if (params.data && params.data.is_stoppage &&
+        (params.colDef.field === 'theoretical_start' || params.colDef.field === 'theoretical_end')) {
+      this.eGui.innerText = '-';
+      return;
+    }
+
     // Formate la date en français si elle existe, sinon affiche vide
     this.eGui.innerText = params.value ?
       new Date(params.value).toLocaleString('fr-FR', {
@@ -444,6 +451,15 @@ class DateTimeRenderer {
   getGui() { return this.eGui; }
 
   // false = pas de mise à jour partielle, AG Grid recrée le renderer si besoin
+  refresh() { return false; }
+}
+
+
+// ── RENDERER "TIRET" ────────────────────────────────────────────────────────
+// Affiche "-" dans une cellule (colonnes non applicables aux lignes ARRET)
+class DashRenderer {
+  init() { this.eGui = document.createElement('span'); this.eGui.innerText = '-'; }
+  getGui() { return this.eGui; }
   refresh() { return false; }
 }
 
@@ -571,6 +587,13 @@ window._lockRowId = null; // id de la ligne en cours de saisie
 
 function updateSaisielock(api, rowData) {
   const id = rowData.id;
+  // Lignes ARRET : pas de groupe de saisie obligatoire (Qté OK/NOTOK non applicables) → jamais verrouillées
+  if (rowData.is_stoppage) {
+    window._lockRowId = null;
+    document.getElementById('myGrid').classList.remove('saisie-en-cours');
+    api.redrawRows();
+    return;
+  }
   const hasFin      = rowData.actual_end        != null && rowData.actual_end !== '';
   const hasQtyOk    = rowData.final_quantity     != null && rowData.final_quantity !== '';
   const hasQtyNotok = rowData.final_quantity_ko  != null && rowData.final_quantity_ko !== '';
@@ -614,7 +637,7 @@ async function patchRow(id, field, value) {
     },
     body: JSON.stringify({ [field]: value })
   });
-  // Relance le planning (débounce), sauf pour les champs sans impact sur le calcul
+  // Relance le planning (débounce), sauf pour les champs sans impact sur le calcul (commentaire)
   if (!NO_RECOMPUTE_FIELDS.has(field)) triggerRecompute();
 }
 
@@ -708,22 +731,22 @@ async function init() {
     }] : []),
 
     // ── Colonnes épinglées à gauche ──────────────────────────────────────────
-    { field: 'order_number', headerName: 'N° OF', headerClass: 'permanent-header', headerTooltip: 'Numéro de l\'ordre de fabrication', pinned: 'left', minWidth: 75, lockPinned: true, lockPosition: true },
+    { field: 'order_number', headerName: 'N° OF', headerClass: 'permanent-header', headerTooltip: 'Numéro de l\'ordre de fabrication', pinned: 'left', minWidth: 75, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
     { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true },
-    { field: 'designation', headerName: 'Désignation', headerTooltip: 'Désignation du produit', pinned: 'left', minWidth: 90, lockPinned: true, lockPosition: true },
-    { field: 'quantity', headerName: 'Qté', headerClass: 'permanent-header', headerTooltip: 'Quantité totale de l\'OF', pinned: 'left', minWidth: 25, lockPinned: true, lockPosition: true },
+    { field: 'designation', headerName: 'Désignation', headerTooltip: 'Désignation du produit', pinned: 'left', minWidth: 90, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
+    { field: 'wo_split_quantity', headerName: 'Qté', headerClass: 'permanent-header', headerTooltip: 'Quantité à traiter pour cette ligne — affichage formaté, tri numérique sur la qté de travail', pinned: 'left', minWidth: 45, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data ? (p.data.is_stoppage ? '-' : (p.data.qty_display ?? '')) : '') },
     { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true },
 
     // ── Dates et saisies opérateur ───────────────────────────────────────────
-    { field: 'theoretical_start', headerName: 'Début théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
-    { field: 'theoretical_end', headerName: 'Fin théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
-    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, onCellClicked: p => { p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div></div>' } },
-    { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, onCellClicked: p => { p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></div></div>' } },
-    { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, onCellClicked: p => { p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div></div>' } },
-    { field: 'theoretical_end_adjusted', headerName: 'Fin théorique ajustée', headerClass: 'permanent-header', headerTooltip: 'Fin théorique recalculée à partir du début réel saisi', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer },
+    { field: 'theoretical_start', headerName: 'Début théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 130, width: 145, cellRenderer: DateTimeRenderer },
+    { field: 'theoretical_end', headerName: 'Fin théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 130, width: 145, cellRenderer: DateTimeRenderer },
+    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 130, width: 145, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
+    { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div></div>' } },
+    { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></div></div>' } },
+    { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div></div>' } },
+    { field: 'theoretical_end_adjusted', headerName: 'Fin théorique ajustée', headerClass: 'permanent-header', headerTooltip: 'Fin théorique recalculée à partir du début réel saisi (éditable pour les lignes ARRET)', minWidth: 120, width: 130, cellRenderer: DateTimeRenderer, editable: p => !!(p.data && p.data.is_stoppage), cellEditor: DateTimeEditor, cellClass: p => (p.data && p.data.is_stoppage) ? 'editable-cell' : '' },
     { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 120, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Qté\nOK', headerTooltip: 'Quantité conforme et en dérogation (nombre entier supérieur ou égal à 0)', minWidth: 10, width: 60, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header',
+    { field: 'final_quantity', headerName: 'Qté\nOK', headerTooltip: 'Quantité conforme et en dérogation (nombre entier supérieur ou égal à 0)', minWidth: 10, width: 60, editable: p => !(p.data && p.data.is_stoppage), valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? ''), cellClass: 'editable-cell', headerClass: 'permanent-header editable-header',
       valueSetter: p => {
         if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
           p.data.final_quantity = null;
@@ -735,7 +758,7 @@ async function init() {
         return true;
       }
     },
-    { field: 'final_quantity_ko', headerName: 'Qté\nNOTOK', headerTooltip: 'Quantité à rebuter', minWidth: 10, width: 80, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
+    { field: 'final_quantity_ko', headerName: 'Qté\nNOTOK', headerTooltip: 'Quantité à rebuter', minWidth: 10, width: 80, editable: p => !(p.data && p.data.is_stoppage), valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? ''), cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
     { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire de l\'opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header' },
     {
       field: 'operator_id', minWidth: 50, width: 60,
@@ -753,6 +776,7 @@ async function init() {
       valueGetter: p => p.data ? (p.data.seq_num + '/' + p.data.seq_total) : '',
       cellStyle: { textAlign: 'left', paddingLeft: '1px', paddingRight: '1px' },
     },
+    { field: 'initial_quantity', headerName: 'Qté OF initiale', headerClass: 'permanent-header', headerTooltip: 'Quantité d\'origine de l\'OF, figée (non impactée par les arrêts ou scissions)', minWidth: 55 },
     { field: 'internal_lot', headerName: 'N° de lot', headerClass: 'permanent-header', headerTooltip: 'Numéro de lot interne', minWidth: 55 },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
@@ -1086,7 +1110,7 @@ function initZoom() {
 // ── MENU CONTEXTUEL (clic droit sur en-tête) ─────────────────────────────────
 (function() {
   const PROTECTED = new Set([
-    'order_number','reference','wo_split_quantity','internal_lot','status',
+    'order_number','reference','wo_split_quantity','initial_quantity','internal_lot','status',
     'theoretical_start','theoretical_end','theoretical_end_adjusted','is_locked','locked_by','locked_at',
     'seq_num','actual_start','actual_end','final_quantity','final_quantity_ko',
     'final_comment','operator_id','closed_at'
