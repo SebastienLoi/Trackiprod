@@ -126,6 +126,13 @@
   body.theme-dark .row-stop-planned { background-color: #3A2A10 !important; }
   body.theme-dark .row-stop-planned.row-odd { background-color: #2E200D !important; }
 
+  /* Terminé : remplissage gris, texte blanc */
+  .row-termine          { background-color: #6B7280 !important; }
+  .row-termine.row-odd  { background-color: #5C6471 !important; }
+  .row-termine .ag-cell { color: #FFFFFF !important; }
+  body.theme-dark .row-termine         { background-color: #3A4453 !important; }
+  body.theme-dark .row-termine.row-odd { background-color: #2E3744 !important; }
+
   /* Curseur drag */
   .ag-row-drag { cursor: grab; }
   body.theme-light #cell-popup { background:#1C2B3A; color:#E8F4F8; }
@@ -873,7 +880,8 @@ async function init() {
     // Règles de style par ligne : applique la classe 'row-odd' sur les lignes impaires
     rowClassRules: {
       'row-odd':          p => p.node.rowIndex % 2 !== 0,
-      'row-available':    p => ['disponible', 'available'].includes(p.data?.status),
+      'row-available':    p => ['disponible', 'available', 'Disponible'].includes(p.data?.status),
+      'row-termine':      p => p.data?.status === 'Terminé',
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
       'saisie-active':    p => p.data?.id != null && p.data.id === window._lockRowId,
