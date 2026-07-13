@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackiProd — Jours fériés et fermetures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 12px; }
+
+  /* ── THÈME CLAIR (défaut) ─────────────────────────────── */
+  body.theme-light {
+    --bg:        #F0F2F7;
+    --card:      #FDFDFB;
+    --border:    #B8C4D4;
+    --border-lt: #E6EAF2;
+    --text:      #1A3A5C;
+    --muted:     #6B7280;
+    --weekend:   #A9B3C0;
+    --btn-bg:    #E2E6F0;
+    --hover:     #EDF1F7;
+    /* Jour férié (bleu) */
+    --ferie-bg:  #B5D4F4;
+    --ferie-tx:  #0C447C;
+    /* Fermeture entreprise (vert) */
+    --ferm-bg:   #C0DD97;
+    --ferm-tx:   #27500A;
+    /* Divers */
+    --danger:    #A32D2D;
+    --danger-bd: #F09595;
+    --overlay:   rgba(26,58,92,0.42);
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── THÈME SOMBRE ─────────────────────────────────────── */
+  body.theme-dark {
+    --bg:        #0D1117;
+    --card:      #1E2A3A;
+    --border:    #2C5F8A;
+    --border-lt: #243B55;
+    --text:      #E8F4F8;
+    --muted:     #8B9BB4;
+    --weekend:   #5F7188;
+    --btn-bg:    #243B55;
+    --hover:     #26374B;
+    --ferie-bg:  #1D5183;
+    --ferie-tx:  #DCEBFA;
+    --ferm-bg:   #3B6D11;
+    --ferm-tx:   #EAF3DE;
+    --danger:    #F09595;
+    --danger-bd: #7A2B2B;
+    --overlay:   rgba(5,10,18,0.6);
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── Carte principale ─────────────────────────────────── */
+  #card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  /* En-tête centré : titre + ‹ année › */
+  #head {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  #title { font-size: 15px; font-weight: 600; }
+  .ybtn {
+    border: 1px solid var(--border); background: var(--btn-bg); color: var(--text);
+    border-radius: 6px; width: 26px; height: 26px; cursor: pointer;
+    font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .ybtn:hover { background: var(--hover); }
+  #year { font-size: 16px; font-weight: 600; min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* Légende */
+  #legend {
+    display: flex; gap: 18px; align-items: center; justify-content: center;
+    margin-bottom: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap;
+  }
+  #legend span { display: flex; align-items: center; gap: 5px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* Grille des 12 mois (4 colonnes × 3 rangées) */
+  #months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 900px) { #months { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 680px) { #months { grid-template-columns: repeat(2, 1fr); } }
+
+  .month { border: 1px solid var(--border-lt); border-radius: 8px; padding: 7px 8px 8px; }
+  .mname { font-size: 12px; font-weight: 600; margin-bottom: 5px; text-align: center; }
+  .dow, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dow div { font-size: 9px; color: var(--muted); text-align: center; padding-bottom: 2px; }
+
+  /* Cellule jour */
+  .day {
+    font-size: 10px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .day:hover { outline: 1px solid var(--text); }
+  .day.empty { visibility: hidden; cursor: default; }
+  .day.weekend { color: var(--weekend); }          /* week-end : numéro grisé, pas de fond */
+  .day.ferie   { background: var(--ferie-bg); color: var(--ferie-tx); }
+  .day.ferm    { background: var(--ferm-bg);  color: var(--ferm-tx);  }
+
+  /* ── Overlay + popup d'édition ────────────────────────── */
+  #overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: var(--overlay);
+    align-items: center; justify-content: center;
+  }
+  #overlay.open { display: flex; }
+  #popup {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; width: 340px; max-width: calc(100vw - 32px);
+    font-size: 13px; color: var(--text);
+  }
+  #pop-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  #pop-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .row { margin-bottom: 11px; }
+  .row label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+    font-size: 12px; cursor: pointer; background: transparent; color: var(--text);
+  }
+  .chip.sel        { background: var(--ferie-bg); color: var(--ferie-tx); border-color: var(--ferie-tx); }
+  .chip.ferm.sel   { background: var(--ferm-bg);  color: var(--ferm-tx);  border-color: var(--ferm-tx); }
+  #desc {
+    width: 100%; padding: 7px 9px; font-size: 13px; font-family: inherit;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text);
+  }
+  #desc:focus { outline: none; border-color: var(--text); }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  .btn {
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--text); color: var(--card); border-color: var(--text); }
+  .btn.primary:hover { opacity: 0.88; }
+  .btn.danger { color: var(--danger); border-color: var(--danger-bd); }
+  .btn.hidden { display: none; }
+  #pop-err { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 15px; }
+</style>
+</head>
+<body>
+
+<div id="card">
+  <div id="head">
+    <span id="title">Jours fériés et fermeture entreprise</span>
+    <button class="ybtn" id="prev" aria-label="Année précédente" title="Année précédente">&lsaquo;</button>
+    <span id="year">—</span>
+    <button class="ybtn" id="next" aria-label="Année suivante" title="Année suivante">&rsaquo;</button>
+  </div>
+
+  <div id="legend">
+    <span><i class="sw" id="sw-ferie"></i>Jour férié</span>
+    <span><i class="sw" id="sw-ferm"></i>Fermeture entreprise</span>
+  </div>
+
+  <div id="months"></div>
+</div>
+
+<div id="overlay">
+  <div id="popup">
+    <div id="pop-title"></div>
+    <div id="pop-sub"></div>
+
+    <div class="row">
+      <label>Type de fermeture</label>
+      <div class="chips">
+        <span class="chip" id="chip-ferie" data-type="Public holiday">Jour férié</span>
+        <span class="chip ferm" id="chip-ferm" data-type="Company closure">Fermeture entreprise</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <label for="desc">Description (facultatif)</label>
+      <input type="text" id="desc" placeholder="Ex. Pont de l'Ascension">
+    </div>
+
+    <div id="pop-err"></div>
+
+    <div class="actions">
+      <button class="btn danger" id="btn-del">Supprimer</button>
+      <button class="btn" id="btn-cancel">Annuler</button>
+      <button class="btn primary" id="btn-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Configuration Supabase ───────────────────────────────────────────────────
+const SUPABASE_URL = 'https://eswvpwnehzyqfquaimas.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzd3Zwd25laHp5cWZxdWFpbWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMzAsImV4cCI6MjA5MDYzMjMzMH0.gt7b7KQx6jtvuVF_Xv2THQuq36Dt073mDjX6xaV8a_g';
+
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+
+// ── Constantes ───────────────────────────────────────────────────────────────
+const TYPE_FERIE = 'Public holiday';    // jour férié légal  → bleu
+const TYPE_FERM  = 'Company closure';   // fermeture entreprise → vert
+
+const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin',
+              'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+// ── Thème (?theme=dark|light, + postMessage 'set-theme') ─────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const theme0 = urlParams.get('theme') === 'dark' ? 'dark' : 'light';
+document.body.classList.add('theme-' + theme0);
+
+// ── État ─────────────────────────────────────────────────────────────────────
+let year = new Date().getFullYear();     // année affichée
+let holidays = {};                       // { 'YYYY-MM-DD': {id, date, description, type} }
+let currentDate = null;                  // 'YYYY-MM-DD' du jour en cours d'édition
+let currentType = TYPE_FERIE;            // type sélectionné dans le popup
+
+// ── Utilitaires date (SANS new Date() sur la valeur DB : la colonne est un
+//    type `date` = jour civil, donc aucune conversion de fuseau) ─────────────
+const pad = n => String(n).padStart(2, '0');
+const iso = (y, m, d) => y + '-' + pad(m + 1) + '-' + pad(d);   // m = 0..11
+
+// ── Chargement des jours fériés de l'année affichée ──────────────────────────
+async function loadHolidays() {
+  holidays = {};
+  try {
+    const from = year + '-01-01';
+    const to   = year + '-12-31';
+    const url = SUPABASE_URL + '/rest/v1/holidays'
+      + '?select=id,date,description,type'
+      + '&date=gte.' + from + '&date=lte.' + to
+      + '&order=date.asc';
+    const res = await fetch(url, { headers: HEADERS });
+    const rows = await res.json();
+    (rows || []).forEach(r => {
+      const key = String(r.date).slice(0, 10);   // sécurité : garde 'YYYY-MM-DD'
+      holidays[key] = r;
+    });
+  } catch (e) {
+    console.error('Chargement des jours fériés impossible', e);
+  }
+  render();
+}
+
+// ── Rendu des 12 mois ────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('year').textContent = year;
+
+  let html = '';
+  for (let m = 0; m < 12; m++) {
+    // Décalage du 1er du mois (lundi = 0)
+    let first = new Date(year, m, 1).getDay();
+    first = (first === 0) ? 6 : first - 1;
+    const nbDays = new Date(year, m + 1, 0).getDate();
+
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += '<div class="day empty"></div>';
+
+    for (let d = 1; d <= nbDays; d++) {
+      const key = iso(year, m, d);
+      const wd = new Date(year, m, d).getDay();          // 0 = dimanche, 6 = samedi
+      let cls = 'day';
+      if (wd === 0 || wd === 6) cls += ' weekend';       // numéro grisé (peut être travaillé)
+      const h = holidays[key];
+      if (h) cls += (h.type === TYPE_FERM) ? ' ferm' : ' ferie';
+      const tip = h ? (h.description || (h.type === TYPE_FERM ? 'Fermeture entreprise' : 'Jour férié')) : '';
+      cells += '<div class="' + cls + '" data-date="' + key + '"'
+             + (tip ? ' title="' + tip.replace(/"/g, '&quot;') + '"' : '')
+             + '>' + d + '</div>';
+    }
+
+    html += '<div class="month">'
+          +   '<div class="mname">' + MOIS[m] + '</div>'
+          +   '<div class="dow"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>'
+          +   '<div class="days">' + cells + '</div>'
+          + '</div>';
+  }
+  document.getElementById('months').innerHTML = html;
+
+  // Couleurs de la légende (suivent le thème via les variables CSS)
+  const cs = getComputedStyle(document.body);
+  document.getElementById('sw-ferie').style.background = cs.getPropertyValue('--ferie-bg');
+  document.getElementById('sw-ferm').style.background  = cs.getPropertyValue('--ferm-bg');
+
+  // Clic sur un jour → ouvre le popup
+  document.querySelectorAll('.day[data-date]').forEach(el => {
+    el.addEventListener('click', () => openPopup(el.getAttribute('data-date')));
+  });
+}
+
+// ── Popup d'édition ──────────────────────────────────────────────────────────
+function openPopup(dateKey) {
+  currentDate = dateKey;
+  const h = holidays[dateKey];
+
+  // Libellé "Vendredi 1 mai 2026"
+  const [y, mo, d] = dateKey.split('-').map(Number);
+  const wd = new Date(y, mo - 1, d).getDay();
+  document.getElementById('pop-title').textContent =
+    JOURS[wd] + ' ' + d + ' ' + MOIS[mo - 1].toLowerCase() + ' ' + y;
+
+  document.getElementById('pop-sub').textContent =
+    h ? 'Jour actuellement fermé' : 'Jour actuellement travaillé';
+
+  currentType = h ? h.type : TYPE_FERIE;
+  setChips(currentType);
+
+  document.getElementById('desc').value = h ? (h.description || '') : '';
+  document.getElementById('pop-err').textContent = '';
+
+  // Bouton Supprimer : uniquement si le jour existe déjà
+  document.getElementById('btn-del').classList.toggle('hidden', !h);
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closePopup() {
+  document.getElementById('overlay').classList.remove('open');
+  currentDate = null;
+}
+
+function setChips(type) {
+  currentType = type;
+  document.getElementById('chip-ferie').classList.toggle('sel', type === TYPE_FERIE);
+  document.getElementById('chip-ferm').classList.toggle('sel', type === TYPE_FERM);
+}
+
+// ── Écritures Supabase ───────────────────────────────────────────────────────
+// Prévient WeWeb qu'un jour a changé → lève le drapeau settings_modified
+function notifyParent() {
+  try {
+    window.parent.postMessage({ type: 'holidays-modified' }, '*');
+  } catch (e) { /* iframe isolée : sans effet */ }
+}
+
+async function saveDay() {
+  if (!currentDate) return;
+  const desc = document.getElementById('desc').value.trim();
+  const existing = holidays[currentDate];
+  const errEl = document.getElementById('pop-err');
+  errEl.textContent = '';
+
+  try {
+    let res;
+    if (existing) {
+      // Jour déjà fermé → on met à jour son type et sa description
+      res = await fetch(SUPABASE_URL + '/rest/v1/holidays?id=eq.' + existing.id, {
+        method: 'PATCH',
+        headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({
+          type: currentType,
+          description: desc || null,
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else {
+      // Nouveau jour fermé
+      res = await fetch(SUPABASE_URL + '/rest/v1/holidays', {
+        method: 'POST',
+        headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({
+          date: currentDate,
+          type: currentType,
+          description: desc || null
+        })
+      });
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    closePopup();
+    notifyParent();
+    await loadHolidays();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = "Enregistrement impossible. Réessayez.";
+  }
+}
+
+async function deleteDay() {
+  if (!currentDate) return;
+  const existing = holidays[currentDate];
+  if (!existing) { closePopup(); return; }
+  const errEl = document.getElementById('pop-err');
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/holidays?id=eq.' + existing.id, {
+      method: 'DELETE',
+      headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    closePopup();
+    notifyParent();
+    await loadHolidays();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = "Suppression impossible. Réessayez.";
+  }
+}
+
+// ── Écouteurs ────────────────────────────────────────────────────────────────
+document.getElementById('prev').addEventListener('click', () => { year--; loadHolidays(); });
+document.getElementById('next').addEventListener('click', () => { year++; loadHolidays(); });
+
+document.getElementById('chip-ferie').addEventListener('click', () => setChips(TYPE_FERIE));
+document.getElementById('chip-ferm').addEventListener('click',  () => setChips(TYPE_FERM));
+
+document.getElementById('btn-save').addEventListener('click',   saveDay);
+document.getElementById('btn-del').addEventListener('click',    deleteDay);
+document.getElementById('btn-cancel').addEventListener('click', closePopup);
+
+// Fermer le popup en cliquant hors de lui, ou avec Échap
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target.id === 'overlay') closePopup();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePopup();
+  if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) saveDay();
+});
+
+// Bascule de thème pilotée par WeWeb (même message que index.html)
+window.addEventListener('message', e => {
+  if (!e.data || e.data.type !== 'set-theme') return;
+  const t = e.data.theme;
+  if (t !== 'light' && t !== 'dark') return;
+  document.body.classList.remove('theme-light', 'theme-dark');
+  document.body.classList.add('theme-' + t);
+  render();   // relit les variables CSS pour la légende
+});
+
+// ── Démarrage ────────────────────────────────────────────────────────────────
+loadHolidays();
+</script>
+</body>
+</html>
