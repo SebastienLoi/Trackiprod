@@ -291,6 +291,37 @@ const SUPABASE_URL = 'https://eswvpwnehzyqfquaimas.supabase.co';
 // Clé publique anonyme Supabase (permet la lecture/écriture selon les règles RLS)
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzd3Zwd25laHp5cWZxdWFpbWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMzAsImV4cCI6MjA5MDYzMjMzMH0.gt7b7KQx6jtvuVF_Xv2THQuq36Dt073mDjX6xaV8a_g';
 
+// ── Auth JWT relayé par WeWeb (handshake postMessage) ────────────────────────
+// AUTH_TOKEN vaut la clé anon PAR DÉFAUT : tant qu'aucun JWT n'est reçu (ou si le
+// handshake échoue), les requêtes retombent sur la clé anon → fallback sûr.
+// BRIQUE A : on RÉCEPTIONNE le token et on confirme en console. On ne l'utilise
+// PAS encore dans les fetch (ce sera la brique B, via les en-têtes centralisés).
+let AUTH_TOKEN = SUPABASE_KEY;
+let authReceived = false;
+
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'trackiprod-auth-token') {
+    authReceived = true;
+    if (event.data.token) {
+      AUTH_TOKEN = event.data.token;
+      console.log('[TrackiProd] JWT reçu de WeWeb — longueur =', event.data.token.length);
+    } else {
+      console.log('[TrackiProd] Réponse auth reçue mais token vide (utilisateur non connecté ?)');
+    }
+  }
+});
+
+// Demande le token au parent WeWeb dès le chargement, avec quelques tentatives
+// pour couvrir la course au démarrage (l'écouteur parent peut ne pas être prêt).
+(function requestAuthToken() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-auth-request' }, '*');
+    if (!authReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
+
 // ── Lecture des paramètres URL ───────────────────────────────────────────────
 // Récupère tous les paramètres de l'URL (ex: ?operation_id=2&role=admin)
 const urlParams = new URLSearchParams(window.location.search);
