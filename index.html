@@ -322,6 +322,17 @@ window.addEventListener('message', (event) => {
   ask();
 })();
 
+// En-têtes d'auth centralisés. Lit AUTH_TOKEN à CHAQUE appel → suit automatiquement
+// le token courant (mis à jour au refresh, brique suivante). apikey = clé anon
+// TOUJOURS présente (le gateway Supabase en a besoin pour router la requête) ;
+// Authorization = le JWT si reçu, sinon la clé anon (fallback sûr).
+function authHeaders(extra) {
+  return Object.assign(
+    { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${AUTH_TOKEN}` },
+    extra || {}
+  );
+}
+
 // ── Lecture des paramètres URL ───────────────────────────────────────────────
 // Récupère tous les paramètres de l'URL (ex: ?operation_id=2&role=admin)
 const urlParams = new URLSearchParams(window.location.search);
@@ -364,7 +375,7 @@ async function loadSettings() {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/settings?select=key,value&key=in.(timezone,display_timezone)`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      { headers: authHeaders() }
     );
     const rows = await res.json();
     const map = {};
@@ -632,7 +643,7 @@ class PersonnelRenderer {
 async function loadOperators() {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/who?select=id,trigram,full_name&is_active=eq.true&order=trigram.asc`,
-    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    { headers: authHeaders() }
   );
   return await res.json(); // Retourne un tableau d'objets { id, trigram, full_name }
 }
@@ -659,7 +670,7 @@ async function loadData(api) {
   url += '&order=order_index.asc';
 
   const res = await fetch(url, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    headers: authHeaders()
   });
 
   const data = await res.json(); // Tableau de lignes de work_orders_operations_view
@@ -721,12 +732,7 @@ const NO_RECOMPUTE_FIELDS = new Set(['final_comment']);
 async function patchRow(id, field, value) {
   await fetch(`${SUPABASE_URL}/rest/v1/work_orders_operations?id=eq.${id}`, {
     method: 'PATCH',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
+    headers: authHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
     body: JSON.stringify({ [field]: value })
   });
   // Relance le planning (débounce), sauf pour les champs sans impact sur le calcul (commentaire)
@@ -742,11 +748,7 @@ function triggerRecompute() {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_recompute_planning`, {
         method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: '{}'
       });
       // Recharge la grille pour afficher les dates recalculées,
