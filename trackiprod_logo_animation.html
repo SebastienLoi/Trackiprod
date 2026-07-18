@@ -50,8 +50,9 @@
 <script>
 (function(){
   var SPEED = 20;              // durée de tracé de la FORME du logo (tp-p18)
-  var LETTER_SPEED = SPEED - 5; // lettres : 5 s de moins → tracé plus rapide
+  var LETTER_SPEED = SPEED - 10; // lettres : nettement plus rapides que la forme
   var LOGO_ID = 'tp-p18';       // seul tracé qui n'est pas une lettre
+  var GLIDE_DELAY = 10;         // instant (s) où le scintillement démarre, pour TOUT
 
   function isDark(){
     var v=getComputedStyle(document.documentElement).getPropertyValue('--color-background-primary').trim();
@@ -99,18 +100,17 @@
       path.style.animation = 'draw ' + dur + 's ease forwards';
     });
 
-    // Phase 2 : après le dessin, ajouter la lueur glissante par-dessus via un clone
-    setTimeout(function(){
+    // Phase 2 : lueur glissante ajoutée sur TOUS les tracés à GLIDE_DELAY.
+    function addGlide(selectFn){
       var svg = document.getElementById('tp-svg');
-      var existing = document.getElementById('tp-glide-layer');
-      if(existing) existing.remove();
-
-      // Créer un groupe de clones avec le gradient lueur
-      var g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.id = 'tp-glide-layer';
-
-      var origPaths = document.querySelectorAll('#tp-svg > path');
-      origPaths.forEach(function(p){
+      var g = document.getElementById('tp-glide-layer');
+      if(!g){
+        g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.id = 'tp-glide-layer';
+        svg.appendChild(g);
+      }
+      document.querySelectorAll('#tp-svg > path').forEach(function(p){
+        if(!selectFn(p)) return;
         var clone = p.cloneNode(true);
         clone.removeAttribute('id');
         clone.style.animation = 'none';
@@ -120,8 +120,12 @@
         clone.style.strokeWidth = '3';
         g.appendChild(clone);
       });
-      svg.appendChild(g);
-    }, Math.max(SPEED, LETTER_SPEED) * 1000);
+      svg.appendChild(g); // garde la lueur au-dessus
+    }
+
+    setTimeout(function(){
+      addGlide(function(){ return true; });   // lettres + forme, en une fois
+    }, GLIDE_DELAY * 1000);
   }
 
   updateTheme();
