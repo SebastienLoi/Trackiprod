@@ -299,12 +299,19 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let AUTH_TOKEN = SUPABASE_KEY;
 let authReceived = false;
 
+// Promesse résolue dès que le token arrive (ou au bout de 2,5 s en repli, pour ne
+// jamais bloquer l'affichage si le parent ne répond pas — ex. iframe ouverte seule).
+let _authResolve;
+const authReady = new Promise(res => { _authResolve = res; });
+setTimeout(() => _authResolve && _authResolve(), 2500);
+
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'trackiprod-auth-token') {
     authReceived = true;
     if (event.data.token) {
       AUTH_TOKEN = event.data.token;
       console.log('[TrackiProd] JWT reçu de WeWeb — longueur =', event.data.token.length);
+      if (_authResolve) { _authResolve(); _authResolve = null; }
     } else {
       console.log('[TrackiProd] Réponse auth reçue mais token vide (utilisateur non connecté ?)');
     }
@@ -802,6 +809,9 @@ document.addEventListener('click', e => {
 // ── INITIALISATION PRINCIPALE ────────────────────────────────────────────────
 // Fonction async principale : charge les opérateurs puis initialise le tableau
 async function init() {
+  // Sous RLS, une requête sans JWT ne renvoie PAS d'erreur mais une liste VIDE.
+  // On attend donc le token avant le premier fetch (repli automatique à 2,5 s).
+  await authReady;
 
   // Charge la liste des opérateurs avant de construire le tableau
   // (nécessaire pour le renderer et l'éditeur de la colonne Personnel)
