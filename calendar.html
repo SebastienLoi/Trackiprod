@@ -202,11 +202,46 @@
 const SUPABASE_URL = 'https://eswvpwnehzyqfquaimas.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzd3Zwd25laHp5cWZxdWFpbWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMzAsImV4cCI6MjA5MDYzMjMzMH0.gt7b7KQx6jtvuVF_Xv2THQuq36Dt073mDjX6xaV8a_g';
 
-const HEADERS = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': 'Bearer ' + SUPABASE_KEY,
-  'Content-Type': 'application/json'
-};
+// ── Auth JWT relayé par WeWeb (handshake postMessage) ────────────────────────
+// AUTH_TOKEN vaut la clé anon PAR DÉFAUT → fallback sûr si le handshake échoue.
+// Le parent WeWeb repousse spontanément un token frais à chaque refresh de session.
+let AUTH_TOKEN = SUPABASE_KEY;
+let authReceived = false;
+
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'trackiprod-auth-token') {
+    authReceived = true;
+    if (event.data.token) {
+      AUTH_TOKEN = event.data.token;
+      console.log('[TrackiProd/calendar] JWT reçu de WeWeb — longueur =', event.data.token.length);
+    } else {
+      console.log('[TrackiProd/calendar] Réponse auth reçue mais token vide');
+    }
+  }
+});
+
+(function requestAuthToken() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-auth-request' }, '*');
+    if (!authReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
+
+// Les en-têtes étaient une CONSTANTE (figée au chargement) → elle n'aurait jamais
+// vu le JWT arriver. C'est désormais une FONCTION, relue à chaque requête.
+// apikey = clé anon TOUJOURS présente (routage gateway) ; Authorization = le JWT.
+function authHeaders(extra) {
+  return Object.assign(
+    {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + AUTH_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    extra || {}
+  );
+}
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 const TYPE_FERIE = 'Public holiday';    // jour férié légal  → bleu
@@ -242,7 +277,7 @@ async function loadHolidays() {
       + '?select=id,date,description,type'
       + '&date=gte.' + from + '&date=lte.' + to
       + '&order=date.asc';
-    const res = await fetch(url, { headers: HEADERS });
+    const res = await fetch(url, { headers: authHeaders() });
     const rows = await res.json();
     (rows || []).forEach(r => {
       const key = String(r.date).slice(0, 10);   // sécurité : garde 'YYYY-MM-DD'
@@ -358,7 +393,7 @@ async function saveDay() {
       // Jour déjà fermé → on met à jour son type et sa description
       res = await fetch(SUPABASE_URL + '/rest/v1/holidays?id=eq.' + existing.id, {
         method: 'PATCH',
-        headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' }),
+        headers: authHeaders({ 'Prefer': 'return=minimal' }),
         body: JSON.stringify({
           type: currentType,
           description: desc || null,
@@ -369,7 +404,7 @@ async function saveDay() {
       // Nouveau jour fermé
       res = await fetch(SUPABASE_URL + '/rest/v1/holidays', {
         method: 'POST',
-        headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' }),
+        headers: authHeaders({ 'Prefer': 'return=minimal' }),
         body: JSON.stringify({
           date: currentDate,
           type: currentType,
@@ -398,7 +433,7 @@ async function deleteDay() {
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/holidays?id=eq.' + existing.id, {
       method: 'DELETE',
-      headers: Object.assign({}, HEADERS, { 'Prefer': 'return=minimal' })
+      headers: authHeaders({ 'Prefer': 'return=minimal' })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
