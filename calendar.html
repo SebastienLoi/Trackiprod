@@ -214,6 +214,10 @@ window.addEventListener('message', (event) => {
     if (event.data.token) {
       AUTH_TOKEN = event.data.token;
       console.log('[TrackiProd/calendar] JWT reçu de WeWeb — longueur =', event.data.token.length);
+      // Le 1er loadHolidays() part AVANT l'arrivée du token (donc en clé anon).
+      // Sous RLS, une requête non autorisée ne renvoie pas d'erreur mais une liste
+      // VIDE → calendrier sans couleurs. On relance donc le chargement ici.
+      if (typeof loadHolidays === 'function') loadHolidays();
     } else {
       console.log('[TrackiProd/calendar] Réponse auth reçue mais token vide');
     }
