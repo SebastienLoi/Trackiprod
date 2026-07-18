@@ -132,13 +132,16 @@
   .row-termine .ag-cell { color: #FFFFFF !important; }
   body.theme-dark .row-termine         { background-color: #3A4453 !important; }
   body.theme-dark .row-termine.row-odd { background-color: #2E3744 !important; }
+  /* Dark : texte des lignes Terminé en bleu profond (bannière) au lieu du blanc */
+  body.theme-dark .row-termine .ag-cell { color: #1A3050 !important; }
 
-  /* En cours : police en gras + fond jaune pâle sur toute la ligne */
+  /* En cours : gras + fond jaune pâle (clair) / turquoise sombre (dark) */
   .row-encours .ag-cell { font-weight: 700 !important; }
   .row-encours          { background-color: #FDF6D3 !important; }
   .row-encours.row-odd  { background-color: #F7EFC4 !important; }
-  body.theme-dark .row-encours         { background-color: #3A3418 !important; }
-  body.theme-dark .row-encours.row-odd { background-color: #2E2912 !important; }
+  body.theme-dark .row-encours          { background-color: #0096AA !important; }
+  body.theme-dark .row-encours.row-odd  { background-color: #08899C !important; }
+  body.theme-dark .row-encours .ag-cell { color: #DCE6E9 !important; }
 
   /* Curseur drag */
   .ag-row-drag { cursor: grab; }
