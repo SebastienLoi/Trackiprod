@@ -1159,6 +1159,21 @@ async function init() {
       const rows = [];
       params.api.forEachNodeAfterFilterAndSort(node => rows.push(node.data));
 
+      // ── GARDE : interdiction de déposer un actif dans/avant les TERMINÉS ────
+      // Les terminés forment un bloc figé en tête (trace historique). Si la ligne
+      // déplacée atterrit à leur niveau ou au-dessus, on ANNULE le déplacement :
+      // rechargement des données → la ligne reprend sa position d'origine.
+      let lastDoneIdx = -1;
+      rows.forEach((r, i) => { if (r.status === 'Terminé') lastDoneIdx = i; });
+
+      const movedId  = params.node?.data?.id;
+      const movedIdx = rows.findIndex(r => r.id === movedId);
+
+      if (lastDoneIdx >= 0 && movedIdx >= 0 && movedIdx <= lastDoneIdx) {
+        await loadData(params.api);   // rien n'est écrit en base → retour à l'état initial
+        return;
+      }
+
       // Plus grand order_index parmi les TERMINÉS (visibles ou masqués) :
       // les actifs devront tous se placer au-dessus.
       let maxDone = 0;
