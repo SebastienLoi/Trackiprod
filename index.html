@@ -376,7 +376,11 @@ const isAdmin = role === 'admin';
 // ── Détection du thème ───────────────────────────────────────────────────────
 // Récupère le thème passé par WeWeb dans l'URL (?theme=dark ou ?theme=light)
 // Par défaut : light
-const theme = urlParams.get('theme') || 'light';
+let theme = urlParams.get('theme') || 'light';
+// currentTheme suit le thème EN COURS (mis à jour par le listener set-theme).
+// theme, lu une seule fois, ne reflète que le chargement initial → le picker
+// ouvert après une bascule recevait l'ancien thème.
+let currentTheme = theme;
 
 // Applique la classe CSS correspondante sur le body
 // Toutes les couleurs AG Grid et les couleurs de fond sont pilotées par cette classe
@@ -471,7 +475,7 @@ class DateTimeEditor {
     const debutParam  = (this.field === 'fin_reelle' && actualStart)
       ? '&debut=' + encodeURIComponent(actualStart) : '';
     const pickerUrl = 'https://sebastienloi.github.io/Trackiprod/date_time_real_begin_end.html'
-      + '?theme=' + theme + '&field=' + this.field + debutParam;
+      + '?theme=' + currentTheme + '&field=' + this.field + debutParam;
 
     // Conteneur popup
     this.container = document.createElement('div');
@@ -1241,6 +1245,7 @@ window.addEventListener('message', function(event) {
   if (newTheme !== 'light' && newTheme !== 'dark') return;
 
   // ── Swap de la classe CSS sur le body ────────────────────────────────
+  currentTheme = newTheme;   // le picker ouvert ensuite prendra le bon thème
   document.body.classList.remove('theme-light', 'theme-dark');
   document.body.classList.add('theme-' + newTheme);
 
