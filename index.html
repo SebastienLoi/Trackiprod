@@ -250,6 +250,10 @@
 
   /* Le tableau prend tout l'espace restant après le scrollbar miroir */
   #grid-wrapper #myGrid { height: calc(100vh - 12px - 16px); }
+  /* Réserve la hauteur de la barre de zoom (48px) sous les lignes : sinon la barre,
+     en position:fixed en bas à gauche, recouvre la dernière ligne. Le padding est
+     posé sur le viewport des lignes centrales → le scroll va « un cran plus bas ». */
+  .ag-body-viewport { padding-bottom: 48px; }
 
   /* Div miroir : scrollable horizontalement, hauteur = scrollbar */
   #top-scroll {
