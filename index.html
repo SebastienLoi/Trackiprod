@@ -133,7 +133,7 @@
   body.theme-dark .row-termine         { background-color: #3A4453 !important; }
   body.theme-dark .row-termine.row-odd { background-color: #2E3744 !important; }
   /* Dark : texte des lignes Terminé en bleu profond (bannière) au lieu du blanc */
-  body.theme-dark .row-termine .ag-cell { color: #9CA3AF !important; }
+  body.theme-dark .row-termine .ag-cell { color: #9CA3AF !important; }  /* gris moyen : lisible mais éteint (pas blanc comme les actifs) */
 
   /* En cours : gras + fond jaune pâle (clair) / turquoise sombre (dark) */
   .row-encours .ag-cell { font-weight: 700 !important; }
@@ -481,8 +481,8 @@ class DateTimeEditor {
     this.container = document.createElement('div');
     this.container.style.cssText =
       'position:fixed;z-index:99999;background:' +
-      (theme === 'dark' ? '#1E2A3A' : '#E2E6F0') +
-      ';border:1px solid ' + (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') +
+      (currentTheme === 'dark' ? '#1E2A3A' : '#E2E6F0') +
+      ';border:1px solid ' + (currentTheme === 'dark' ? '#2C5F8A' : '#B8C4D4') +
       ';border-radius:12px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);' +
       'display:flex;flex-direction:column;gap:10px;';
 
@@ -502,7 +502,7 @@ class DateTimeEditor {
     btnClose.textContent = '✕';
     btnClose.style.cssText = 'position:absolute;top:8px;right:10px;background:transparent;border:none;' +
       'cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;' +
-      'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';';
+      'color:' + (currentTheme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';';
     btnClose.title = 'Fermer sans modifier';
     btnClose.addEventListener('click', () => { this.resolved = true; params.api.stopEditing(true); });
     this.container.style.position = 'fixed'; // s'assurer que position:absolute de la croix fonctionne
@@ -516,8 +516,8 @@ class DateTimeEditor {
     const btnCancel = document.createElement('button');
     btnCancel.textContent = 'Effacer';
     btnCancel.style.cssText = 'padding:6px 16px;border-radius:6px;border:1px solid ' +
-      (theme === 'dark' ? '#2C5F8A' : '#B8C4D4') + ';background:transparent;cursor:pointer;' +
-      'color:' + (theme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';font-size:13px;';
+      (currentTheme === 'dark' ? '#2C5F8A' : '#B8C4D4') + ';background:transparent;cursor:pointer;' +
+      'color:' + (currentTheme === 'dark' ? '#E8F4F8' : '#1A3A5C') + ';font-size:13px;';
     btnCancel.addEventListener('click', () => { this.value = null; this.resolved = true; params.api.stopEditing(false); });
 
     const btnOk = document.createElement('button');
