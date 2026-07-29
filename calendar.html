@@ -255,10 +255,13 @@ const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin',
               'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
-// ── Thème (?theme=dark|light, + postMessage 'set-theme') ─────────────────────
+// ── Thème (?theme= sert de défaut ; le thème réel arrive par handshake) ───────
+// Le paramètre d'URL n'est PLUS fiable (WeWeb code theme=light en dur) : il ne
+// sert que de valeur de repli le temps que le parent réponde au handshake.
 const urlParams = new URLSearchParams(window.location.search);
 const theme0 = urlParams.get('theme') === 'dark' ? 'dark' : 'light';
 document.body.classList.add('theme-' + theme0);
+let themeReceived = false;   // passe à true dès la 1re réponse 'set-theme' du parent
 
 // ── État ─────────────────────────────────────────────────────────────────────
 let year = new Date().getFullYear();     // année affichée
@@ -470,15 +473,31 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) saveDay();
 });
 
-// Bascule de thème pilotée par WeWeb (même message que index.html)
+// Bascule de thème pilotée par WeWeb (même message que index.html).
+// Sert AUSSI de réponse au handshake initial ci-dessous (themeReceived).
 window.addEventListener('message', e => {
   if (!e.data || e.data.type !== 'set-theme') return;
   const t = e.data.theme;
   if (t !== 'light' && t !== 'dark') return;
+  themeReceived = true;
   document.body.classList.remove('theme-light', 'theme-dark');
   document.body.classList.add('theme-' + t);
   render();   // relit les variables CSS pour la légende
 });
+
+// ── Handshake thème (même principe que le handshake JWT) ─────────────────────
+// L'iframe DEMANDE son thème au parent dès qu'elle est prête ; le parent répond
+// par un 'set-theme'. Insensible au timing (c'est l'iframe qui initie quand son
+// listener est en place), et on réessaie jusqu'à réponse. Remplace l'ancien
+// setTimeout(800) + querySelector('iframe') côté WeWeb, tous deux fragiles.
+(function requestTheme() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-theme-request' }, '*');
+    if (!themeReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
 
 // ── Démarrage ────────────────────────────────────────────────────────────────
 loadHolidays();
