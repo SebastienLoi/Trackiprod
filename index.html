@@ -380,7 +380,10 @@ let theme = urlParams.get('theme') || 'light';
 // currentTheme suit le thème EN COURS (mis à jour par le listener set-theme).
 // theme, lu une seule fois, ne reflète que le chargement initial → le picker
 // ouvert après une bascule recevait l'ancien thème.
+// NB : ?theme= n'est plus fiable (WeWeb code theme=light en dur) — il ne sert
+// que de défaut le temps que le handshake réponde (cf. requestTheme plus bas).
 let currentTheme = theme;
+let themeReceived = false;   // passe à true dès la 1re réponse 'set-theme' du parent
 
 // Applique la classe CSS correspondante sur le body
 // Toutes les couleurs AG Grid et les couleurs de fond sont pilotées par cette classe
@@ -1243,6 +1246,7 @@ window.addEventListener('message', function(event) {
 
   const newTheme = event.data.theme; // 'light' ou 'dark'
   if (newTheme !== 'light' && newTheme !== 'dark') return;
+  themeReceived = true;      // réponse au handshake initial (cf. requestTheme)
 
   // ── Swap de la classe CSS sur le body ────────────────────────────────
   currentTheme = newTheme;   // le picker ouvert ensuite prendra le bon thème
@@ -1258,6 +1262,19 @@ window.addEventListener('message', function(event) {
     img.style.filter = newFilter;
   });
 });
+
+// ── Handshake thème (même principe que le handshake JWT) ─────────────────────
+// L'iframe DEMANDE son thème au parent dès qu'elle est prête ; le parent répond
+// par un 'set-theme'. Insensible au timing, on réessaie jusqu'à réponse.
+// Remplace l'ancien setTimeout(800) + querySelector('iframe') côté WeWeb.
+(function requestTheme() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-theme-request' }, '*');
+    if (!themeReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
 
 // ── BARRE DE ZOOM ────────────────────────────────────────────────────────────
 // Variable globale accessible par syncBottomWidth et initZoom
