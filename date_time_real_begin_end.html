@@ -358,6 +358,9 @@
 
     if (field === 'fin_reelle' && debutParam) {
       var debut = new Date(debutParam);
+      // Le '+' du décalage horaire ISO (ex. +00:00) est décodé en espace dans l'URL
+      // si le paramètre n'a pas été URL-encodé → date invalide. On retente en remettant le '+'.
+      if (isNaN(debut.getTime())) debut = new Date(debutParam.replace(' ', '+'));
       if (result.getTime() <= debut.getTime()) {
         window.parent.postMessage({
           type: 'datetime-error',
