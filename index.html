@@ -722,7 +722,7 @@ async function loadData(api) {
   // Les terminés occupent le bas de la pile historique ; on ne garde que les
   // N plus RÉCENTS (= plus grand order_index) et on retire les précédents.
   // On filtre à l'AFFICHAGE seulement : la base et le moteur gardent tout.
-  const done   = data.filter(r => r.status === 'Terminé');
+  const done   = data.filter(r => r.status === 'done');
   const toHide = new Set(
     completedVisibleCount >= done.length
       ? []
@@ -884,10 +884,16 @@ async function init() {
   // Icône utilisateur (Personnel) — SVG inline
   const USER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
+  // ── Libellés d'affichage des codes de statut ────────────────────────────────
+  // La vue renvoie désormais des CODES stables (done/in_progress/planned/available).
+  // Cette map traduit code → texte affiché ; elle deviendra le dictionnaire i18n.
+  const STATUS_LABELS = { done: 'Terminé', in_progress: 'En cours', planned: 'Planifié', available: 'Disponible' };
+  const STOPPAGE_LABEL = 'ARRET';   // libellé des lignes d'arrêt (ex-'ARRET' de la vue)
+
   const columnDefs = [
     // Drag handle admin uniquement — épinglé à gauche, non visible dans le panneau colonnes
     ...(isAdmin ? [{
-      rowDrag: p => !!(p.data && p.data.status !== 'Terminé'), maxWidth: 50,
+      rowDrag: p => !!(p.data && p.data.status !== 'done'), maxWidth: 50,
       suppressMenu: true, suppressSorting: true,
       pinned: 'left', lockPinned: true, lockPosition: true,
       suppressColumnsToolPanel: true,
@@ -895,10 +901,10 @@ async function init() {
 
     // ── Colonnes épinglées à gauche ──────────────────────────────────────────
     { field: 'order_number', headerName: 'N° OF', headerClass: 'permanent-header', headerTooltip: 'Numéro de l\'ordre de fabrication', pinned: 'left', minWidth: 75, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
-    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true },
+    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (p.value ?? ((p.data && p.data.is_stoppage) ? STOPPAGE_LABEL : '')) },
     { field: 'designation', headerName: 'Désignation', headerTooltip: 'Désignation du produit', pinned: 'left', minWidth: 90, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
     { field: 'wo_split_quantity', headerName: 'Qté', headerClass: 'permanent-header', headerTooltip: 'Quantité à traiter pour cette ligne — affichage formaté, tri numérique sur la qté de travail', pinned: 'left', minWidth: 45, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data ? (p.data.is_stoppage ? '-' : (p.data.qty_display ?? '')) : '') },
-    { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true },
+    { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => STATUS_LABELS[p.value] ?? (p.value ?? '') },
 
     // ── Dates et saisies opérateur ───────────────────────────────────────────
     { field: 'theoretical_start', headerName: 'Début théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 130, width: 145, cellRenderer: DateTimeRenderer },
@@ -1077,9 +1083,9 @@ async function init() {
     // Règles de style par ligne : applique la classe 'row-odd' sur les lignes impaires
     rowClassRules: {
       'row-odd':          p => p.node.rowIndex % 2 !== 0,
-      'row-available':    p => ['disponible', 'available', 'Disponible'].includes(p.data?.status),
-      'row-termine':      p => p.data?.status === 'Terminé',
-      'row-encours':      p => p.data?.status === 'En cours',
+      'row-available':    p => p.data?.status === 'available',
+      'row-termine':      p => p.data?.status === 'done',
+      'row-encours':      p => p.data?.status === 'in_progress',
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
       'saisie-active':    p => p.data?.id != null && p.data.id === window._lockRowId,
@@ -1175,7 +1181,7 @@ async function init() {
       // déplacée atterrit à leur niveau ou au-dessus, on ANNULE le déplacement :
       // rechargement des données → la ligne reprend sa position d'origine.
       let lastDoneIdx = -1;
-      rows.forEach((r, i) => { if (r.status === 'Terminé') lastDoneIdx = i; });
+      rows.forEach((r, i) => { if (r.status === 'done') lastDoneIdx = i; });
 
       const movedId  = params.node?.data?.id;
       const movedIdx = rows.findIndex(r => r.id === movedId);
@@ -1189,7 +1195,7 @@ async function init() {
       // Indispensable : N PATCH séparés collisionnent sur la contrainte
       // unique_operation_order (chaque PATCH = 1 transaction). La RPC place les
       // actifs au-dessus du dernier terminé et laisse le moteur renormaliser.
-      const actifs = rows.filter(r => r.status !== 'Terminé');
+      const actifs = rows.filter(r => r.status !== 'done');
       const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_reorder_woo`, {
         method: 'POST',
         headers: authHeaders({ 'Content-Type': 'application/json' }),
