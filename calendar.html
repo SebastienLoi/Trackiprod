@@ -162,8 +162,8 @@
   </div>
 
   <div id="legend">
-    <span><i class="sw" id="sw-ferie"></i>Jour férié</span>
-    <span><i class="sw" id="sw-ferm"></i>Fermeture entreprise</span>
+    <span><i class="sw" id="sw-ferie"></i><span id="lbl-ferie">Jour férié</span></span>
+    <span><i class="sw" id="sw-ferm"></i><span id="lbl-ferm">Fermeture entreprise</span></span>
   </div>
 
   <div id="months"></div>
@@ -175,7 +175,7 @@
     <div id="pop-sub"></div>
 
     <div class="row">
-      <label>Type de fermeture</label>
+      <label id="lbl-type">Type de fermeture</label>
       <div class="chips">
         <span class="chip" id="chip-ferie" data-type="Public holiday">Jour férié</span>
         <span class="chip ferm" id="chip-ferm" data-type="Company closure">Fermeture entreprise</span>
@@ -183,7 +183,7 @@
     </div>
 
     <div class="row">
-      <label for="desc">Description (facultatif)</label>
+      <label for="desc" id="lbl-desc">Description (facultatif)</label>
       <input type="text" id="desc" placeholder="Ex. Pont de l'Ascension">
     </div>
 
@@ -251,9 +251,61 @@ function authHeaders(extra) {
 const TYPE_FERIE = 'Public holiday';    // jour férié légal  → bleu
 const TYPE_FERM  = 'Company closure';   // fermeture entreprise → vert
 
-const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin',
-              'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+// ── i18n : dictionnaire + langue + t() ───────────────────────────────────────
+// La langue réelle arrive par handshake postMessage (voir bas de fichier) ;
+// 'fr' n'est que le défaut le temps que le parent réponde.
+const I18N = {
+  fr: {
+    title: 'Jours fériés et fermeture entreprise',
+    prevYear: 'Année précédente',
+    nextYear: 'Année suivante',
+    legendFerie: 'Jour férié',
+    legendFerm: 'Fermeture entreprise',
+    typeLabel: 'Type de fermeture',
+    chipFerie: 'Jour férié',
+    chipFerm: 'Fermeture entreprise',
+    descLabel: 'Description (facultatif)',
+    descPlaceholder: "Ex. Pont de l'Ascension",
+    btnDel: 'Supprimer',
+    btnCancel: 'Annuler',
+    btnSave: 'Enregistrer',
+    dayClosed: 'Jour actuellement fermé',
+    dayWorking: 'Jour actuellement travaillé',
+    saveErr: 'Enregistrement impossible. Réessayez.',
+    delErr: 'Suppression impossible. Réessayez.',
+    months: ['Janvier','Février','Mars','Avril','Mai','Juin',
+             'Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
+    days: ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+    dow: ['L','M','M','J','V','S','D'],
+    lowercaseMonthInTitle: true
+  },
+  en: {
+    title: 'Public holidays and company closures',
+    prevYear: 'Previous year',
+    nextYear: 'Next year',
+    legendFerie: 'Public holiday',
+    legendFerm: 'Company closure',
+    typeLabel: 'Closure type',
+    chipFerie: 'Public holiday',
+    chipFerm: 'Company closure',
+    descLabel: 'Description (optional)',
+    descPlaceholder: 'e.g. Bank holiday',
+    btnDel: 'Delete',
+    btnCancel: 'Cancel',
+    btnSave: 'Save',
+    dayClosed: 'Currently a closed day',
+    dayWorking: 'Currently a working day',
+    saveErr: 'Could not save. Please try again.',
+    delErr: 'Could not delete. Please try again.',
+    months: ['January','February','March','April','May','June',
+             'July','August','September','October','November','December'],
+    days: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    dow: ['M','T','W','T','F','S','S'],
+    lowercaseMonthInTitle: false
+  }
+};
+let lang = 'fr';
+const t = (k) => (I18N[lang] || I18N.fr)[k];
 
 // ── Thème (?theme= sert de défaut ; le thème réel arrive par handshake) ───────
 // Le paramètre d'URL n'est PLUS fiable (WeWeb code theme=light en dur) : il ne
@@ -296,6 +348,25 @@ async function loadHolidays() {
   render();
 }
 
+// ── Libellés statiques (dépendants de la langue) ─────────────────────────────
+function applyStaticLabels() {
+  document.getElementById('title').textContent = t('title');
+  const prev = document.getElementById('prev');
+  prev.title = t('prevYear'); prev.setAttribute('aria-label', t('prevYear'));
+  const next = document.getElementById('next');
+  next.title = t('nextYear'); next.setAttribute('aria-label', t('nextYear'));
+  document.getElementById('lbl-ferie').textContent  = t('legendFerie');
+  document.getElementById('lbl-ferm').textContent   = t('legendFerm');
+  document.getElementById('lbl-type').textContent   = t('typeLabel');
+  document.getElementById('chip-ferie').textContent = t('chipFerie');
+  document.getElementById('chip-ferm').textContent  = t('chipFerm');
+  document.getElementById('lbl-desc').textContent   = t('descLabel');
+  document.getElementById('desc').placeholder       = t('descPlaceholder');
+  document.getElementById('btn-del').textContent    = t('btnDel');
+  document.getElementById('btn-cancel').textContent = t('btnCancel');
+  document.getElementById('btn-save').textContent   = t('btnSave');
+}
+
 // ── Rendu des 12 mois ────────────────────────────────────────────────────────
 function render() {
   document.getElementById('year').textContent = year;
@@ -317,15 +388,15 @@ function render() {
       if (wd === 0 || wd === 6) cls += ' weekend';       // numéro grisé (peut être travaillé)
       const h = holidays[key];
       if (h) cls += (h.type === TYPE_FERM) ? ' ferm' : ' ferie';
-      const tip = h ? (h.description || (h.type === TYPE_FERM ? 'Fermeture entreprise' : 'Jour férié')) : '';
+      const tip = h ? (h.description || (h.type === TYPE_FERM ? t('legendFerm') : t('legendFerie'))) : '';
       cells += '<div class="' + cls + '" data-date="' + key + '"'
              + (tip ? ' title="' + tip.replace(/"/g, '&quot;') + '"' : '')
              + '>' + d + '</div>';
     }
 
     html += '<div class="month">'
-          +   '<div class="mname">' + MOIS[m] + '</div>'
-          +   '<div class="dow"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>'
+          +   '<div class="mname">' + t('months')[m] + '</div>'
+          +   '<div class="dow">' + t('dow').map(x => '<div>' + x + '</div>').join('') + '</div>'
           +   '<div class="days">' + cells + '</div>'
           + '</div>';
   }
@@ -350,11 +421,13 @@ function openPopup(dateKey) {
   // Libellé "Vendredi 1 mai 2026"
   const [y, mo, d] = dateKey.split('-').map(Number);
   const wd = new Date(y, mo - 1, d).getDay();
+  const _months = t('months'), _days = t('days');
+  const _mn = t('lowercaseMonthInTitle') ? _months[mo - 1].toLowerCase() : _months[mo - 1];
   document.getElementById('pop-title').textContent =
-    JOURS[wd] + ' ' + d + ' ' + MOIS[mo - 1].toLowerCase() + ' ' + y;
+    _days[wd] + ' ' + d + ' ' + _mn + ' ' + y;
 
   document.getElementById('pop-sub').textContent =
-    h ? 'Jour actuellement fermé' : 'Jour actuellement travaillé';
+    h ? t('dayClosed') : t('dayWorking');
 
   currentType = h ? h.type : TYPE_FERIE;
   setChips(currentType);
@@ -426,7 +499,7 @@ async function saveDay() {
     await loadHolidays();
   } catch (e) {
     console.error(e);
-    errEl.textContent = "Enregistrement impossible. Réessayez.";
+    errEl.textContent = t('saveErr');
   }
 }
 
@@ -449,7 +522,7 @@ async function deleteDay() {
     await loadHolidays();
   } catch (e) {
     console.error(e);
-    errEl.textContent = "Suppression impossible. Réessayez.";
+    errEl.textContent = t('delErr');
   }
 }
 
@@ -499,7 +572,30 @@ window.addEventListener('message', e => {
   ask();
 })();
 
+// ── Langue (handshake, même principe que le thème) ───────────────────────────
+// L'iframe DEMANDE sa langue au parent dès qu'elle est prête ; le parent répond
+// par un 'set-language'. On re-render au changement (statique + grille).
+let langReceived = false;
+window.addEventListener('message', e => {
+  if (!e.data || e.data.type !== 'set-language') return;
+  const l = (e.data.lang === 'en') ? 'en' : 'fr';
+  langReceived = true;
+  if (l === lang) return;
+  lang = l;
+  applyStaticLabels();
+  render();
+});
+(function requestLang() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-lang-request' }, '*');
+    if (!langReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
+
 // ── Démarrage ────────────────────────────────────────────────────────────────
+applyStaticLabels();   // pose les libellés dans la langue par défaut (fr) avant le handshake
 loadHolidays();
 </script>
 </body>
