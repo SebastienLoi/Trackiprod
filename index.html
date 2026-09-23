@@ -385,6 +385,125 @@ let theme = urlParams.get('theme') || 'light';
 let currentTheme = theme;
 let themeReceived = false;   // passe à true dès la 1re réponse 'set-theme' du parent
 
+// ── i18n (planning) : langue + dictionnaires + localisation des colonnes ──────
+let LANG = 'fr';               // langue active ; corrigée par le handshake 'set-language'
+let langReceived = false;
+
+const STATUS_LABELS_ALL = {
+  fr: { done: 'Terminé', in_progress: 'En cours', planned: 'Planifié', available: 'Disponible' },
+  en: { done: 'Done', in_progress: 'In progress', planned: 'Planned', available: 'Available' }
+};
+const STOPPAGE_LABEL_ALL = { fr: 'ARRET', en: 'STOPPAGE' };
+
+// Libellés d'en-tête FR -> EN (colonnes texte ; les colonnes icône n'y figurent pas)
+const I18N_HEADERS = {
+  "N° OF": "WO No.",
+  "Référence": "Reference",
+  "Désignation": "Designation",
+  "Qté": "Qty",
+  "Statut OP": "OP status",
+  "Début théorique": "Theoretical start",
+  "Fin théorique": "Theoretical end",
+  "Début réel": "Actual start",
+  "Fin théorique ajustée": "Adjusted theoretical end",
+  "Fin réelle": "Actual end",
+  "Qté\nOK": "Qty\nOK",
+  "Qté\nNOTOK": "Qty\nNOTOK",
+  "Commentaire": "Comment",
+  "Terminé le": "Closed on",
+  "Partie": "Part",
+  "Qté OF initiale": "Initial WO qty",
+  "N° de lot": "Lot No.",
+  "Client": "Client",
+  "Prio": "Prio",
+  "Fin prévue OF": "WO due date",
+  "Gamme complète": "Full routing",
+  "Tps unit. (min)": "Unit time (min)",
+  "Tps prep. (min)": "Prep time (min)",
+  "Tps réalis. (min)": "Run time (min)",
+  "Total estimé (min)": "Est. total (min)",
+  "Total réalisé (min)": "Actual total (min)",
+  "Observation": "Observation",
+  "Création OF": "WO created",
+  "Mise à jour OP": "OP updated",
+  "ARRET en cours ?": "Stoppage active?",
+  "ARRET durant OF ?": "Stoppage during WO?",
+  "OF lors ARRET": "WO split on stoppage",
+  "Début ARRET": "Stoppage start",
+  "Fin estimée ARRET": "Est. stoppage end",
+  "Fin réelle ARRET": "Actual stoppage end",
+  "Commentaire ARRET": "Stoppage comment",
+  "Qté avant ARRET": "Qty before stoppage"
+};
+
+// Tooltips (survol) FR -> EN : traduits partout, y compris colonnes icône
+const I18N_TIPS = {
+  "Numéro de l'ordre de fabrication": "Manufacturing order number",
+  "Référence produit": "Product reference",
+  "Désignation du produit": "Product designation",
+  "Quantité à traiter pour cette ligne — affichage formaté, tri numérique sur la qté de travail": "Quantity to process for this row — formatted display, numeric sort on work qty",
+  "Statut de la ligne": "Row status",
+  "Date et heure de début théorique calculées par le scheduling": "Theoretical start date/time computed by scheduling",
+  "Date et heure de fin théorique calculées par le scheduling": "Theoretical end date/time computed by scheduling",
+  "Date et heure de début réelles — saisie opérateur": "Actual start date/time — operator input",
+  "OF réalisé pendant la pause de midi ?": "WO worked during the lunch break?",
+  "OF réalisé le soir (en dehors des horaires de travail) ?": "WO worked in the evening (outside working hours)?",
+  "OF réalisé la nuit ?": "WO worked at night?",
+  "Fin théorique recalculée à partir du début réel saisi (éditable pour les lignes ARRET)": "Theoretical end recomputed from the entered actual start (editable for STOPPAGE rows)",
+  "Date et heure de fin réelles — saisie opérateur": "Actual end date/time — operator input",
+  "Quantité conforme et en dérogation (nombre entier supérieur ou égal à 0)": "Conforming and concession quantity (integer >= 0)",
+  "Quantité à rebuter": "Quantity to scrap",
+  "Commentaire de l'opérateur": "Operator's comment",
+  "Opérateur assigné à cette opération": "Operator assigned to this operation",
+  "Date et heure de clôture de l'opération": "Operation close date/time",
+  "Numéro de phase / Total de phases de cet OF dans cette OP": "Phase number / total phases of this WO in this OP",
+  "Quantité d'origine de l'OF, figée (non impactée par les arrêts ou scissions)": "Original WO quantity, fixed (unaffected by stoppages or splits)",
+  "Numéro de lot interne": "Internal lot number",
+  "Client associé à l'ordre de fabrication": "Client linked to the manufacturing order",
+  "Niveau de priorité de l'ordre de fabrication": "Manufacturing order priority level",
+  "Date objectif de livraison": "Target delivery date",
+  "Ligne verrouillée — empêche le réordonnancement": "Row locked — prevents reordering",
+  "Trigramme de l'utilisateur ayant posé le verrou": "Trigram of the user who set the lock",
+  "Date et heure du verrouillage": "Lock date/time",
+  "Séquence des opérations de la gamme": "Sequence of routing operations",
+  "Temps unitaire par pièce en minutes": "Unit time per part, in minutes",
+  "Temps de préparation en minutes": "Preparation time, in minutes",
+  "Temps de réalisation total (unitaire × quantité)": "Total run time (unit × quantity)",
+  "Temps total estimé = prépa + réalisation en minutes": "Estimated total time = prep + run, in minutes",
+  "Temps total réellement passé sur l'opération en minutes": "Actual total time spent on the operation, in minutes",
+  "Observation / commentaire de la référence": "Reference observation / comment",
+  "Date et heure de création de la ligne": "Row creation date/time",
+  "Date et heure de dernière modification": "Last modification date/time",
+  "Indique si cette ligne est une ligne d'arrêt": "Indicates whether this row is a stoppage row",
+  "L'arrêt a-t-il interrompu un OF en cours ?": "Did the stoppage interrupt an ongoing WO?",
+  "L'OF a-t-il été scindé à cause de l'arrêt ?": "Was the WO split because of the stoppage?",
+  "Type d'arrêt : Panne / Maintenance / Absence / Autre": "Stoppage type: Breakdown / Maintenance / Absence / Other",
+  "Date et heure de début de l'arrêt": "Stoppage start date/time",
+  "Date et heure estimées de fin d'arrêt": "Estimated stoppage end date/time",
+  "Date et heure réelles de fin d'arrêt": "Actual stoppage end date/time",
+  "Commentaire descriptif de l'arrêt": "Descriptive stoppage comment",
+  "Quantité produite avant l'arrêt": "Quantity produced before the stoppage"
+};
+
+// Renvoie des columnDefs localisés. En 'fr' : les colonnes source (aucune copie).
+// En 'en' : copie superficielle par colonne (préserve les fonctions : valueFormatter,
+// cellRenderer, onCellClicked…) en ne remplaçant que headerName / headerTooltip / le
+// texte des templates cadenas (Par -> By, Le -> On). Les icônes restent intactes.
+function localizeColumnDefs(cols, lang) {
+  if (lang !== 'en') return cols;
+  return cols.map(c => {
+    const nc = { ...c };
+    if (c.headerName && I18N_HEADERS[c.headerName] != null) nc.headerName = I18N_HEADERS[c.headerName];
+    if (c.headerTooltip && I18N_TIPS[c.headerTooltip] != null) nc.headerTooltip = I18N_TIPS[c.headerTooltip];
+    if (c.headerComponentParams && typeof c.headerComponentParams.template === 'string') {
+      const tpl = c.headerComponentParams.template.replace('>Par</div>', '>By</div>').replace('>Le</div>', '>On</div>');
+      if (tpl !== c.headerComponentParams.template) nc.headerComponentParams = { ...c.headerComponentParams, template: tpl };
+    }
+    return nc;
+  });
+}
+
+
 // Applique la classe CSS correspondante sur le body
 // Toutes les couleurs AG Grid et les couleurs de fond sont pilotées par cette classe
 document.body.classList.add('theme-' + theme);
@@ -431,8 +550,15 @@ function fmtDT(iso, tz) {
   if (iso == null || iso === '') return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
+  if (LANG === 'en') {
+    const pe = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: '2-digit', month: 'short', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }).formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+    return `${pe.day} ${pe.month} ${pe.year} - ${pe.hour}:${pe.minute} ${pe.dayPeriod}`;
+  }
   const p = new Intl.DateTimeFormat('fr-FR', {
-    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone: tz, year: '2-digit', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false
   }).formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
   const hh = p.hour === '24' ? '00' : p.hour; // garde-fou minuit
@@ -444,8 +570,14 @@ function fmtDate(iso, tz) {
   if (iso == null || iso === '') return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
+  if (LANG === 'en') {
+    const pe = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: '2-digit', month: 'short', day: '2-digit'
+    }).formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+    return `${pe.day} ${pe.month} ${pe.year}`;
+  }
   const p = new Intl.DateTimeFormat('fr-FR', {
-    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
+    timeZone: tz, year: '2-digit', month: '2-digit', day: '2-digit'
   }).formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
   return `${p.day}/${p.month}/${p.year}`;
 }
@@ -887,8 +1019,7 @@ async function init() {
   // ── Libellés d'affichage des codes de statut ────────────────────────────────
   // La vue renvoie désormais des CODES stables (done/in_progress/planned/available).
   // Cette map traduit code → texte affiché ; elle deviendra le dictionnaire i18n.
-  const STATUS_LABELS = { done: 'Terminé', in_progress: 'En cours', planned: 'Planifié', available: 'Disponible' };
-  const STOPPAGE_LABEL = 'ARRET';   // libellé des lignes d'arrêt (ex-'ARRET' de la vue)
+  // Statuts/ARRET : voir STATUS_LABELS_ALL / STOPPAGE_LABEL_ALL (i18n, haut du fichier)
 
   const columnDefs = [
     // Drag handle admin uniquement — épinglé à gauche, non visible dans le panneau colonnes
@@ -901,10 +1032,10 @@ async function init() {
 
     // ── Colonnes épinglées à gauche ──────────────────────────────────────────
     { field: 'order_number', headerName: 'N° OF', headerClass: 'permanent-header', headerTooltip: 'Numéro de l\'ordre de fabrication', pinned: 'left', minWidth: 75, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
-    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (p.value ?? ((p.data && p.data.is_stoppage) ? STOPPAGE_LABEL : '')) },
+    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (p.value ?? ((p.data && p.data.is_stoppage) ? STOPPAGE_LABEL_ALL[LANG] : '')) },
     { field: 'designation', headerName: 'Désignation', headerTooltip: 'Désignation du produit', pinned: 'left', minWidth: 90, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
     { field: 'wo_split_quantity', headerName: 'Qté', headerClass: 'permanent-header', headerTooltip: 'Quantité à traiter pour cette ligne — affichage formaté, tri numérique sur la qté de travail', pinned: 'left', minWidth: 45, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data ? (p.data.is_stoppage ? '-' : (p.data.qty_display ?? '')) : '') },
-    { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => STATUS_LABELS[p.value] ?? (p.value ?? '') },
+    { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (STATUS_LABELS_ALL[LANG]||{})[p.value] ?? (p.value ?? '') },
 
     // ── Dates et saisies opérateur ───────────────────────────────────────────
     { field: 'theoretical_start', headerName: 'Début théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 130, width: 145, cellRenderer: DateTimeRenderer },
@@ -994,8 +1125,9 @@ async function init() {
   ];
 
   // ── OPTIONS DU TABLEAU ───────────────────────────────────────────────────
+  window.__baseColumnDefs = columnDefs;   // base FR exposée pour la reconstruction i18n
   const gridOptions = {
-    columnDefs,       // Définition des colonnes ci-dessus
+    columnDefs: localizeColumnDefs(columnDefs, LANG),   // en-têtes selon la langue
     rowData: [],      // Données vides au départ, remplies par loadData()
 
     // Traduction FR de l'interface AG Grid (filtres, menus, panneau colonnes)
@@ -1278,6 +1410,30 @@ window.addEventListener('message', function(event) {
   const ask = () => {
     window.parent.postMessage({ type: 'trackiprod-theme-request' }, '*');
     if (!themeReceived && ++tries < 6) setTimeout(ask, 400);
+  };
+  ask();
+})();
+
+// ── ÉCOUTE LANGUE (miroir du handshake thème) ───────────────────────────────
+window.addEventListener('message', function(event) {
+  if (!event.data || event.data.type !== 'set-language') return;
+  const l = (event.data.lang === 'en') ? 'en' : 'fr';
+  langReceived = true;
+  if (l === LANG) return;
+  LANG = l;
+  // Reconstruit les en-têtes selon la langue + rafraîchit les cellules (statut/référence)
+  if (window.gridApi && window.__baseColumnDefs) {
+    window.gridApi.setGridOption('columnDefs', localizeColumnDefs(window.__baseColumnDefs, LANG));
+    window.gridApi.refreshCells({ force: true });
+  }
+});
+
+// ── Handshake langue : l'iframe DEMANDE sa langue, le parent répond 'set-language' ──
+(function requestLang() {
+  let tries = 0;
+  const ask = () => {
+    window.parent.postMessage({ type: 'trackiprod-lang-request' }, '*');
+    if (!langReceived && ++tries < 6) setTimeout(ask, 400);
   };
   ask();
 })();
