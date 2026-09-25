@@ -390,13 +390,18 @@
       // si le paramètre n'a pas été URL-encodé → date invalide. On retente en remettant le '+'.
       if (isNaN(debut.getTime())) debut = new Date(debutParam.replace(' ', '+'));
       if (result.getTime() <= debut.getTime()) {
-        window.parent.postMessage({
-          type: 'datetime-error',
-          message: "⚠️ La fin réelle doit être ultérieure au début réel (" +
-            pad(debut.getDate()) + "/" + pad(debut.getMonth()+1) + "/" +
-            String(debut.getFullYear()).slice(2) + " - " +
-            pad(debut.getHours()) + ":" + pad(debut.getMinutes()) + ")."
-        }, '*');
+        var dOpts = (lang === 'en')
+          ? { day:'2-digit', month:'short', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:true }
+          : { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false };
+        var dbg = new Intl.DateTimeFormat((lang === 'en') ? 'en-US' : 'fr-FR', dOpts)
+          .formatToParts(debut).reduce(function(a, x){ a[x.type] = x.value; return a; }, {});
+        var debutStr = (lang === 'en')
+          ? (dbg.day + " " + dbg.month + " " + dbg.year + " - " + dbg.hour + ":" + dbg.minute + " " + dbg.dayPeriod)
+          : (dbg.day + "/" + dbg.month + "/" + dbg.year + " - " + dbg.hour + ":" + dbg.minute);
+        var message = (lang === 'en')
+          ? "⚠️ The actual end must be later than the actual start (" + debutStr + ")."
+          : "⚠️ La fin réelle doit être ultérieure au début réel (" + debutStr + ").";
+        window.parent.postMessage({ type: 'datetime-error', message: message }, '*');
         return;
       }
     }
