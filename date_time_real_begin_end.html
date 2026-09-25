@@ -133,6 +133,8 @@
       height: 32px; line-height: 32px; flex-shrink: 0;
       margin-top: calc(28px + 6px + 100px - 16px);
     }
+    .drum-ampm { align-self: center; font-size: 18px; font-weight: 700; color: var(--color-text); cursor: pointer; user-select: none; padding: 6px 10px; border-radius: 6px; transition: background 0.15s; }
+    .drum-ampm:hover { background: var(--drum-line-bg); }
   </style>
 </head>
 <body>
@@ -171,6 +173,7 @@
         </div>
         <button class="drum-arrow" onclick="changeM(1)">▼</button>
       </div>
+      <div class="drum-ampm" id="ampm" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -180,6 +183,7 @@
   var theme = params.get('theme') || 'dark';
   var field = params.get('field') || 'debut_reel';
   var debutParam = params.get('debut') || '';
+  var lang = params.get('lang') || 'fr';
 
   document.body.classList.add('theme-' + theme);
 
@@ -193,6 +197,20 @@
   var DRAG_RANGE = 8;
 
   function pad(n){ return String(n).padStart(2,'0'); }
+
+  // Affichage d'une heure dans le drum : 24h en FR, 12h en EN (01..12)
+  function dispHour(v){
+    if (lang !== 'en') return pad(v);
+    return pad(v % 12 === 0 ? 12 : v % 12);
+  }
+  // Indicateur AM/PM (EN seulement), basé sur l'heure 24h interne
+  function renderAmpm(){
+    var el = document.getElementById('ampm');
+    if (!el) return;
+    if (lang !== 'en') { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.textContent = h < 12 ? 'AM' : 'PM';
+  }
 
   function getTopOffset(trackH, range) {
     return (trackH / 2) - (ITEM_H / 2) - range * ITEM_H;
@@ -210,26 +228,33 @@
     var inp = document.createElement('input');
     inp.type = 'number';
     inp.className = 'drum-input';
-    inp.value = pad(isHours ? h : m);
-    inp.min = 0;
-    inp.max = isHours ? 23 : 59;
+    inp.value = isHours ? dispHour(h) : pad(m);
+    inp.min = isHours ? (lang === 'en' ? 1 : 0) : 0;
+    inp.max = isHours ? (lang === 'en' ? 12 : 23) : 59;
     inp.addEventListener('focus', function(){ this.select(); });
-    inp.addEventListener('input', function() {
-      var val = parseInt(this.value, 10);
-      var max = isHours ? 23 : 59;
-      if (isNaN(val)) return;
-      if (val < 0) val = 0;
-      if (val > max) val = max;
-      if (isHours) h = val; else m = val;
-    });
-    inp.addEventListener('blur', function() {
-      var val = parseInt(this.value, 10);
-      var max = isHours ? 23 : 59;
-      if (isNaN(val) || val < 0) val = 0;
-      if (val > max) val = max;
-      if (isHours) { h = val; renderDrum('h-items', h, 24); }
-      else { m = val; renderDrum('m-items', m, 60); }
-    });
+    function applyInput(commit) {
+      var val = parseInt(inp.value, 10);
+      if (isNaN(val)) {
+        if (commit) { if (isHours) renderDrum('h-items', h, 24); else renderDrum('m-items', m, 60); }
+        return;
+      }
+      if (isHours) {
+        if (lang === 'en') {
+          if (val < 1) val = 1; if (val > 12) val = 12;
+          h = (val % 12) + (h >= 12 ? 12 : 0);   // conserve la période AM/PM courante
+        } else {
+          if (val < 0) val = 0; if (val > 23) val = 23;
+          h = val;
+        }
+        if (commit) renderDrum('h-items', h, 24);
+      } else {
+        if (val < 0) val = 0; if (val > 59) val = 59;
+        m = val;
+        if (commit) renderDrum('m-items', m, 60);
+      }
+    }
+    inp.addEventListener('input', function(){ applyInput(false); });
+    inp.addEventListener('blur', function(){ applyInput(true); });
     inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') this.blur();
       if (e.key === 'Tab') {
@@ -260,7 +285,7 @@
       } else {
         var div = document.createElement('div');
         div.className = 'drum-item';
-        div.textContent = pad(v);
+        div.textContent = isHours ? dispHour(v) : pad(v);
         var s = styleForDist(Math.abs(o));
         div.style.fontSize = s.fontSize; div.style.color = s.color;
         div.style.opacity = s.opacity; div.style.fontWeight = s.fw;
@@ -275,6 +300,7 @@
       }
     }
     el.style.transform = 'translateY(' + topOffset + 'px)';
+    if (id === 'h-items') renderAmpm();
   }
 
   function renderDragFrame(id, val, max, offsetPx) {
@@ -288,7 +314,7 @@
       var v = ((val + o) % max + max) % max;
       var div = document.createElement('div');
       div.className = 'drum-item';
-      div.textContent = pad(v);
+      div.textContent = (id === 'h-items') ? dispHour(v) : pad(v);
       var itemCenterY = topOffset + offsetPx + (o + DRAG_RANGE) * ITEM_H + ITEM_H / 2;
       var distFromCenter = Math.abs(itemCenterY - centerY);
       var distInItems = distFromCenter / ITEM_H;
@@ -336,7 +362,9 @@
     var grid = document.getElementById('cal-grid');
     grid.querySelectorAll('.day,.empty').forEach(function(c){ c.remove(); });
     var y = cur.getFullYear(), mo = cur.getMonth();
-    var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    var months = (lang === 'en')
+      ? ['January','February','March','April','May','June','July','August','September','October','November','December']
+      : ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     document.getElementById('month-label').textContent = months[mo] + ' ' + y;
     var first = new Date(y, mo, 1).getDay(); first = first===0?6:first-1;
     var days = new Date(y, mo+1, 0).getDate();
@@ -389,6 +417,13 @@
   renderCalendar();
   renderDrum('h-items', h, 24);
   renderDrum('m-items', m, 60);
+  (function(){
+    var dayNames = (lang === 'en') ? ['M','T','W','T','F','S','S'] : ['L','M','M','J','V','S','D'];
+    document.querySelectorAll('.day-name').forEach(function(el, i){ if (dayNames[i]) el.textContent = dayNames[i]; });
+    var a = document.getElementById('ampm');
+    if (a) a.addEventListener('click', function(){ h = (h < 12) ? h + 12 : h - 12; renderDrum('h-items', h, 24); });
+    renderAmpm();
+  })();
 </script>
 </body>
 </html>
