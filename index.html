@@ -935,7 +935,6 @@ async function init() {
       valueGetter: p => p.data ? (p.data.seq_num + '/' + p.data.seq_total) : '',
       cellStyle: { textAlign: 'left', paddingLeft: '1px', paddingRight: '1px' },
     },
-    { field: 'initial_quantity', headerName: 'Qté OF initiale', headerClass: 'permanent-header', headerTooltip: 'Quantité d\'origine de l\'OF, figée (non impactée par les arrêts ou scissions)', minWidth: 55 },
     { field: 'internal_lot', headerName: 'N° de lot', headerClass: 'permanent-header', headerTooltip: 'Numéro de lot interne', minWidth: 55 },
     { field: 'client', headerName: 'Client', headerTooltip: 'Client associé à l\'ordre de fabrication', minWidth: 55 },
 
@@ -1355,7 +1354,7 @@ function initZoom() {
 // ── MENU CONTEXTUEL (clic droit sur en-tête) ─────────────────────────────────
 (function() {
   const PROTECTED = new Set([
-    'order_number','reference','wo_split_quantity','initial_quantity','internal_lot','status',
+    'order_number','reference','wo_split_quantity','internal_lot','status',
     'theoretical_start','theoretical_end','theoretical_end_adjusted',
     'seq_num','actual_start','actual_end',
     'final_comment','closed_at'
