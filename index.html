@@ -41,27 +41,11 @@
   .ag-header-cell-label { font-weight: 600; font-size: 12px; }
   .ag-header-cell { padding-left: 6px !important; padding-right: 16px !important; }
   /* Titres des colonnes épinglées (non masquables) en gras */
-  /* ── VERROUILLAGE SAISIE PARTIELLE ─────────────────────────────────────── */
-  /* Griser tout sauf la ligne active */
-  .ag-theme-alpine.saisie-en-cours .ag-row:not(.saisie-active) .ag-cell {
-    background-color: #6B7280 !important;
-    pointer-events: none !important;
-  }
-  /* Sur la ligne active, griser tout sauf les 5 cellules libres */
-  .ag-theme-alpine.saisie-en-cours .ag-row.saisie-active .ag-cell:not([col-id="actual_end"]):not([col-id="final_quantity"]):not([col-id="final_quantity_ko"]):not([col-id="operator_id"]):not([col-id="final_comment"]) {
-    background-color: #6B7280 !important;
-    pointer-events: none !important;
-  }
 
   /* Colonnes non-masquables : titre en gras */
   .ag-header-cell.permanent-header .ag-header-cell-text { font-weight: 700 !important; }
-  /* Colonnes avec template custom (operator_id, is_locked, locked_by, locked_at) */
-  .ag-header-cell[col-id="operator_id"] .ag-header-cell-label,
-  .ag-header-cell[col-id="is_locked"] .ag-header-cell-label,
-  .ag-header-cell[col-id="locked_by"] .ag-header-cell-label,
-  .ag-header-cell[col-id="locked_at"] .ag-header-cell-label { font-weight: 700 !important; }
   /* Colonnes masquables : opacity 50% au survol pour indiquer qu'elles peuvent être masquées */
-  .ag-header-cell:not(.permanent-header):not([col-id="operator_id"]):not([col-id="is_locked"]):not([col-id="locked_by"]):not([col-id="locked_at"]):hover { opacity: 0.5; transition: opacity 0.2s; }
+  .ag-header-cell:not(.permanent-header):hover { opacity: 0.5; transition: opacity 0.2s; }
   .ag-header-cell-label { display: flex !important; align-items: center !important; height: 100% !important; }
   .ag-header-cell-label { padding: 2px 0 !important; }
 
@@ -394,6 +378,11 @@ const STATUS_LABELS_ALL = {
   en: { done: 'Done', in_progress: 'In progress', planned: 'Planned', available: 'Available' }
 };
 const STOPPAGE_LABEL_ALL = { fr: 'ARRET', en: 'STOPPAGE' };
+// Libellés des types d'arrêt (codes posés par les RPC fn_declare_stoppage_*)
+const STOPPAGE_TYPE_LABELS_ALL = {
+  fr: { unplanned: 'subi', planned: 'planifié' },
+  en: { unplanned: 'unplanned', planned: 'planned' }
+};
 
 // Libellés d'en-tête FR -> EN (colonnes texte ; les colonnes icône n'y figurent pas)
 const I18N_HEADERS = {
@@ -451,10 +440,7 @@ const I18N_TIPS = {
   "OF réalisé la nuit ?": "WO worked at night?",
   "Fin théorique recalculée à partir du début réel saisi (éditable pour les lignes ARRET)": "Theoretical end recomputed from the entered actual start (editable for STOPPAGE rows)",
   "Date et heure de fin réelles — saisie opérateur": "Actual end date/time — operator input",
-  "Quantité conforme et en dérogation (nombre entier supérieur ou égal à 0)": "Conforming and concession quantity (integer >= 0)",
-  "Quantité à rebuter": "Quantity to scrap",
   "Commentaire de l'opérateur": "Operator's comment",
-  "Opérateur assigné à cette opération": "Operator assigned to this operation",
   "Date et heure de clôture de l'opération": "Operation close date/time",
   "Numéro de phase / Total de phases de cet OF dans cette OP": "Phase number / total phases of this WO in this OP",
   "Quantité d'origine de l'OF, figée (non impactée par les arrêts ou scissions)": "Original WO quantity, fixed (unaffected by stoppages or splits)",
@@ -462,9 +448,6 @@ const I18N_TIPS = {
   "Client associé à l'ordre de fabrication": "Client linked to the manufacturing order",
   "Niveau de priorité de l'ordre de fabrication": "Manufacturing order priority level",
   "Date objectif de livraison": "Target delivery date",
-  "Ligne verrouillée — empêche le réordonnancement": "Row locked — prevents reordering",
-  "Trigramme de l'utilisateur ayant posé le verrou": "Trigram of the user who set the lock",
-  "Date et heure du verrouillage": "Lock date/time",
   "Séquence des opérations de la gamme": "Sequence of routing operations",
   "Temps unitaire par pièce en minutes": "Unit time per part, in minutes",
   "Temps de préparation en minutes": "Preparation time, in minutes",
@@ -742,87 +725,6 @@ class DashRenderer {
 
 
 // ── ÉDITEUR PERSONNEL (liste déroulante) ────────────────────────────────────
-// Composant custom AG Grid pour sélectionner un opérateur dans une liste
-// La liste est chargée depuis la table 'who' de Supabase au démarrage
-class PersonnelEditor {
-  init(params) {
-    // Valeur actuelle de la cellule (id de l'opérateur)
-    this.value = params.value;
-
-    // Crée un élément <select> (liste déroulante)
-    this.select = document.createElement('select');
-    this.select.style.cssText = 'width:100%;height:100%;border:none;padding:0 8px;font-size:13px;background:#FFFDE7;';
-
-    // Option vide par défaut (pour désélectionner)
-    const empty = document.createElement('option');
-    empty.value = '';
-    empty.text = '✕ Annuler la sélection';
-    this.select.appendChild(empty);
-
-    // Ajoute une option par opérateur actif chargé depuis Supabase
-    (params.operators || []).forEach(op => {
-      const opt = document.createElement('option');
-      opt.value = op.id;
-      opt.text = `${op.trigram} — ${op.full_name}`;
-      if (op.id === params.value) opt.selected = true;
-      this.select.appendChild(opt);
-    });
-
-    // Déclencher updateSaisielock immédiatement au changement de sélection
-    this.select.addEventListener('change', () => {
-      const newVal = this.select.value ? parseInt(this.select.value) : null;
-      const updatedData = { ...params.data, operator_id: newVal };
-      if (typeof updateSaisielock === 'function') {
-        updateSaisielock(params.api, updatedData);
-      }
-    });
-  }
-
-  getGui() { return this.select; }
-  afterGuiAttached() {
-    this.select.focus();
-    try { this.select.showPicker(); } catch(e) { this.select.click(); }
-  }
-
-  // Retourne l'id numérique sélectionné, ou null si aucun
-  getValue() { return this.select.value ? parseInt(this.select.value) : null; }
-
-  isPopup() { return false; }
-  destroy() {}
-}
-
-
-// ── RENDERER PERSONNEL ───────────────────────────────────────────────────────
-// Affiche "ABC — Alfred BCA" dans la cellule en mode lecture
-// Retrouve l'opérateur par son id dans la liste chargée depuis Supabase
-class PersonnelRenderer {
-  init(params) {
-    this.eGui = document.createElement('span');
-
-    // Recherche l'opérateur dont l'id correspond à la valeur de la cellule
-    const op = (params.operators || []).find(o => o.id === params.value);
-
-    // Affiche "TRIGRAMME — Nom complet" ou vide si non trouvé
-    this.eGui.innerText = op ? `${op.trigram} — ${op.full_name}` : '';
-  }
-
-  getGui() { return this.eGui; }
-  refresh() { return false; }
-}
-
-
-// ── CHARGEMENT DES OPÉRATEURS ────────────────────────────────────────────────
-// Récupère depuis Supabase la liste des opérateurs actifs de la table 'who'
-// Triés par trigramme alphabétique
-async function loadOperators() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/who?select=id,trigram,full_name&is_active=eq.true&order=trigram.asc`,
-    { headers: authHeaders() }
-  );
-  return await res.json(); // Retourne un tableau d'objets { id, trigram, full_name }
-}
-
-
 // ── CHARGEMENT DES LIGNES OF ─────────────────────────────────────────────────
 // Récupère les lignes de la vue work_orders_operations_view depuis Supabase
 // Filtre optionnel par operations_id si passé dans l'URL (?operation_id=X)
@@ -867,45 +769,6 @@ async function loadData(api) {
 }
 
 
-// ── VERROUILLAGE SAISIE PARTIELLE ───────────────────────────────────────────
-// Les 4 champs à saisir ensemble : fin réelle, qté OK, qté NOTOK, opérateur
-const GROUPE_FIELDS = new Set(['actual_end','final_quantity','final_quantity_ko','operator_id']);
-// Colonnes AG Grid correspondantes (pour styliser les cellules)
-const GROUPE_COL_IDS = new Set(['actual_end','final_quantity','final_quantity_ko','operator_id']);
-
-window._lockRowId = null; // id de la ligne en cours de saisie
-
-function updateSaisielock(api, rowData) {
-  const id = rowData.id;
-  // Lignes ARRET : pas de groupe de saisie obligatoire (Qté OK/NOTOK non applicables) → jamais verrouillées
-  if (rowData.is_stoppage) {
-    window._lockRowId = null;
-    document.getElementById('myGrid').classList.remove('saisie-en-cours');
-    api.redrawRows();
-    return;
-  }
-  const hasFin      = rowData.actual_end        != null && rowData.actual_end !== '';
-  const hasQtyOk    = rowData.final_quantity     != null && rowData.final_quantity !== '';
-  const hasQtyNotok = rowData.final_quantity_ko  != null && rowData.final_quantity_ko !== '';
-  const hasOp       = rowData.operator_id        != null && rowData.operator_id !== 0 && rowData.operator_id !== '';
-  const anyFilled   = hasFin || hasQtyOk || hasQtyNotok || hasOp;
-  const allFilled   = hasFin && hasQtyOk && hasQtyNotok && hasOp;
-  const grid        = document.getElementById('myGrid');
-
-  // Toujours nettoyer d'abord
-  window._lockRowId = null;
-  grid.classList.remove('saisie-en-cours');
-
-  if (anyFilled && !allFilled) {
-    window._lockRowId = id;
-    // rowClassRules applique automatiquement saisie-active via _lockRowId
-    api.redrawRows();
-    grid.classList.add('saisie-en-cours');
-  } else {
-    api.redrawRows();
-  }
-}
-
 // ── MISE À JOUR D'UNE LIGNE EN BASE ─────────────────────────────────────────
 // Envoie un PATCH à Supabase pour mettre à jour un seul champ d'une ligne
 // Appelée après chaque modification de cellule (onCellValueChanged) et après drag
@@ -914,7 +777,24 @@ let _recomputeTimer = null;
 // Champs qui n'impactent PAS l'ordonnancement → on ne relance pas le recompute.
 // (le commentaire est purement informatif ; M/S/N en revanche changent les
 //  créneaux d'overlap autorisés, donc eux déclenchent bien un recalcul)
-const NO_RECOMPUTE_FIELDS = new Set(['final_comment']);
+const NO_RECOMPUTE_FIELDS = new Set(['final_comment','stoppage_comment']);
+
+// ── REDIRECTION DE CHAMPS POUR LES LIGNES ARRET ──────────────────────────────
+// Une ligne ARRET réutilise 3 colonnes "OF" pour afficher/éditer sa fenêtre d'arrêt :
+//   Début réel        -> stoppage_start          (lecture seule : posé à la déclaration WeWeb)
+//   Fin théo. ajustée -> estimated_stoppage_end  (lecture seule : fin estimée déclarée)
+//   Fin réelle        -> actual_stoppage_end     (éditable admin : résolution/ajustement)
+//   Commentaire       -> stoppage_comment
+const STOPPAGE_FIELD_MAP = {
+  actual_start: 'stoppage_start',
+  theoretical_end_adjusted: 'estimated_stoppage_end',
+  actual_end: 'actual_stoppage_end',
+  final_comment: 'stoppage_comment'
+};
+// Champ réel à lire/écrire en base selon que la ligne est un ARRET ou non
+function effField(colField, data) {
+  return (data && data.is_stoppage && STOPPAGE_FIELD_MAP[colField]) ? STOPPAGE_FIELD_MAP[colField] : colField;
+}
 
 async function patchRow(id, field, value) {
   await fetch(`${SUPABASE_URL}/rest/v1/work_orders_operations?id=eq.${id}`, {
@@ -942,7 +822,7 @@ function triggerRecompute() {
       // SAUF si une saisie partielle ou une édition de cellule est en cours
       // (sinon on écraserait ce que l'opérateur est en train de taper).
       const editing = window.gridApi?.getEditingCells?.().length > 0;
-      if (window._lockRowId == null && !editing && window.gridApi) {
+      if (!editing && window.gridApi) {
         await loadData(window.gridApi);
       }
     } catch (e) {
@@ -993,10 +873,6 @@ async function init() {
   // On attend donc le token avant le premier fetch (repli automatique à 2,5 s).
   await authReady;
 
-  // Charge la liste des opérateurs avant de construire le tableau
-  // (nécessaire pour le renderer et l'éditeur de la colonne Personnel)
-  const operators = await loadOperators();
-
   // Charge le fuseau d'affichage avant de construire le tableau
   // displayTZ = settings.display_timezone si renseigné, sinon fuseau du navigateur
   const settings = await loadSettings();
@@ -1010,9 +886,6 @@ async function init() {
 
   // ── DÉFINITION DES COLONNES ──────────────────────────────────────────────
   // ── Icônes SVG pour les en-têtes ────────────────────────────────────────────
-  // Icône cadenas (Verrouillé) — SVG inline encodé en base64 pour éviter les problèmes de guillemets
-  const LOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
-
   // Icône utilisateur (Personnel) — SVG inline
   const USER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
@@ -1032,7 +905,14 @@ async function init() {
 
     // ── Colonnes épinglées à gauche ──────────────────────────────────────────
     { field: 'order_number', headerName: 'N° OF', headerClass: 'permanent-header', headerTooltip: 'Numéro de l\'ordre de fabrication', pinned: 'left', minWidth: 75, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
-    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (p.value ?? ((p.data && p.data.is_stoppage) ? STOPPAGE_LABEL_ALL[LANG] : '')) },
+    { field: 'reference', headerName: 'Référence', headerClass: 'permanent-header', headerTooltip: 'Référence produit', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => {
+      if (p.data && p.data.is_stoppage) {
+        const base = STOPPAGE_LABEL_ALL[LANG];
+        const t = (STOPPAGE_TYPE_LABELS_ALL[LANG] || {})[p.data.stoppage_type];
+        return t ? (base + ' — ' + t) : base;
+      }
+      return p.value ?? '';
+    } },
     { field: 'designation', headerName: 'Désignation', headerTooltip: 'Désignation du produit', pinned: 'left', minWidth: 90, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? '') },
     { field: 'wo_split_quantity', headerName: 'Qté', headerClass: 'permanent-header', headerTooltip: 'Quantité à traiter pour cette ligne — affichage formaté, tri numérique sur la qté de travail', pinned: 'left', minWidth: 45, lockPinned: true, lockPosition: true, valueFormatter: p => (p.data ? (p.data.is_stoppage ? '-' : (p.data.qty_display ?? '')) : '') },
     { field: 'status', headerName: 'Statut OP', headerClass: 'permanent-header', headerTooltip: 'Statut de la ligne', pinned: 'left', minWidth: 80, lockPinned: true, lockPosition: true, valueFormatter: p => (STATUS_LABELS_ALL[LANG]||{})[p.value] ?? (p.value ?? '') },
@@ -1040,34 +920,13 @@ async function init() {
     // ── Dates et saisies opérateur ───────────────────────────────────────────
     { field: 'theoretical_start', headerName: 'Début théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de début théorique calculées par le scheduling', minWidth: 95, width: 145, cellRenderer: DateTimeRenderer },
     { field: 'theoretical_end', headerName: 'Fin théorique', headerClass: 'permanent-header', headerTooltip: 'Date et heure de fin théorique calculées par le scheduling', minWidth: 95, width: 145, cellRenderer: DateTimeRenderer },
-    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Date et heure de début réelles — saisie opérateur', minWidth: 95, width: 145, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
+    { field: 'actual_start', headerName: 'Début réel', headerTooltip: 'Début réel — saisie opérateur ; pour un ARRET : début de l\'arrêt (lecture seule)', minWidth: 95, width: 145, editable: p => !(p.data && p.data.is_stoppage), cellClass: p => (p.data && p.data.is_stoppage) ? '' : 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer, valueGetter: p => p.data ? p.data[effField('actual_start', p.data)] : null, valueSetter: p => { if (!p.data) return false; p.data[effField('actual_start', p.data)] = p.newValue; return true; } },
     { field: 'lunch_overlap', headerName: 'M', headerTooltip: 'OF réalisé pendant la pause de midi ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div></div>' } },
     { field: 'evening_overlap', headerName: 'S', headerTooltip: 'OF réalisé le soir (en dehors des horaires de travail) ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M12 7a5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 1 5-5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="4.22" y1="6.22" x2="5.64" y2="7.64"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="18.36" y1="7.64" x2="19.78" y2="6.22"/><line x1="3" y1="17" x2="21" y2="17"/></svg></div></div>' } },
     { field: 'night_shift', headerName: 'N', headerTooltip: 'OF réalisé la nuit ?', minWidth: 10, width: 50, editable: false, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellStyle: { textAlign: 'center', paddingLeft: '1px', paddingRight: '1px' }, cellRendererSelector: p => (p.data && p.data.is_stoppage) ? { component: DashRenderer } : null, onCellClicked: p => { if (p.data && p.data.is_stoppage) return; p.data[p.column.getColId()] = !p.data[p.column.getColId()]; p.api.refreshCells({ rowNodes: [p.node], columns: [p.column.getColId()], force: true }); saveBoolField(p.data.id, p.column.getColId(), p.data[p.column.getColId()]); }, headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div></div>' } },
-    { field: 'theoretical_end_adjusted', headerName: 'Fin théorique ajustée', headerClass: 'permanent-header', headerTooltip: 'Fin théorique recalculée à partir du début réel saisi (éditable pour les lignes ARRET)', minWidth: 88, width: 130, cellRenderer: DateTimeRenderer, editable: p => !!(p.data && p.data.is_stoppage), cellEditor: DateTimeEditor, cellClass: p => (p.data && p.data.is_stoppage) ? 'editable-cell' : '' },
-    { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Date et heure de fin réelles — saisie opérateur', minWidth: 88, width: 130, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer },
-    { field: 'final_quantity', headerName: 'Qté\nOK', headerTooltip: 'Quantité conforme et en dérogation (nombre entier supérieur ou égal à 0)', minWidth: 10, width: 60, editable: p => !(p.data && p.data.is_stoppage), valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? ''), cellClass: 'editable-cell', headerClass: 'permanent-header editable-header',
-      valueSetter: p => {
-        if (p.newValue === '' || p.newValue === null || p.newValue === undefined) {
-          p.data.final_quantity = null;
-          return true;
-        }
-        const val = parseInt(p.newValue);
-        if (isNaN(val) || val < 0) return false;
-        p.data.final_quantity = val;
-        return true;
-      }
-    },
-    { field: 'final_quantity_ko', headerName: 'Qté\nNOTOK', headerTooltip: 'Quantité à rebuter', minWidth: 10, width: 80, editable: p => !(p.data && p.data.is_stoppage), valueFormatter: p => (p.data && p.data.is_stoppage) ? '-' : (p.value ?? ''), cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', valueSetter: p => { if (p.newValue === '' || p.newValue === null || p.newValue === undefined) { p.data.final_quantity_ko = null; return true; } const val = parseInt(p.newValue); if (isNaN(val) || val < 0) return false; p.data.final_quantity_ko = val; return true; } },
-    { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire de l\'opérateur', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header' },
-    {
-      field: 'operator_id', minWidth: 50, width: 60,
-      headerTooltip: 'Opérateur assigné à cette opération',
-      headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>?</div></div>' },
-      editable: true, singleClickEdit: true, cellClass: 'editable-cell', headerClass: 'editable-header',
-      cellEditor: PersonnelEditor, cellEditorParams: { operators },
-      cellRenderer: PersonnelRenderer, cellRendererParams: { operators },
-    },
+    { field: 'theoretical_end_adjusted', headerName: 'Fin théorique ajustée', headerClass: 'permanent-header', headerTooltip: 'Fin recalculée depuis le début réel ; pour un ARRET : fin estimée déclarée (lecture seule)', minWidth: 88, width: 130, cellRenderer: DateTimeRenderer, valueGetter: p => p.data ? p.data[effField('theoretical_end_adjusted', p.data)] : null },
+    { field: 'actual_end', headerName: 'Fin réelle', headerTooltip: 'Fin réelle — saisie opérateur ; pour un ARRET : fin réelle de l\'arrêt (éditable admin)', minWidth: 88, width: 130, editable: p => (p.data && p.data.is_stoppage) ? isAdmin : true, cellClass: p => ((p.data && p.data.is_stoppage) && !isAdmin) ? '' : 'editable-cell', headerClass: 'permanent-header editable-header', cellEditor: DateTimeEditor, cellRenderer: DateTimeRenderer, valueGetter: p => p.data ? p.data[effField('actual_end', p.data)] : null, valueSetter: p => { if (!p.data) return false; p.data[effField('actual_end', p.data)] = p.newValue; return true; } },
+    { field: 'final_comment', headerName: 'Commentaire', headerTooltip: 'Commentaire — pour un ARRET : commentaire de l\'arrêt', minWidth: 90, editable: true, cellClass: 'editable-cell', headerClass: 'permanent-header editable-header', valueGetter: p => p.data ? p.data[effField('final_comment', p.data)] : null, valueSetter: p => { if (!p.data) return false; p.data[effField('final_comment', p.data)] = p.newValue; return true; } },
     { field: 'closed_at', headerName: 'Terminé le', headerClass: 'permanent-header', headerTooltip: 'Date et heure de clôture de l\'opération', minWidth: 88, width: 130, cellRenderer: DateTimeRenderer, cellClass: 'no-sweep' },
     {
       headerName: 'Partie', headerClass: 'permanent-header',
@@ -1085,22 +944,6 @@ async function init() {
     {
       field: 'due_date', headerName: 'Fin prévue OF', headerTooltip: 'Date objectif de livraison', minWidth: 60,
       valueFormatter: p => p.value ? fmtDate(p.value, displayTZ) : ''
-    },
-    {
-      field: 'is_locked', minWidth: 45,
-      headerTooltip: 'Ligne verrouillée — empêche le réordonnancement',
-      headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>?</div></div>' },
-      cellRenderer: p => p.value ? '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' : '',
-    },
-    {
-      field: 'locked_by', minWidth: 50,
-      headerTooltip: 'Trigramme de l\'utilisateur ayant posé le verrou',
-      headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Par</div></div>' },
-    },
-    {
-      field: 'locked_at', minWidth: 88, width: 130, cellRenderer: DateTimeRenderer,
-      headerTooltip: 'Date et heure du verrouillage',
-      headerComponentParams: { template: '<div class="ag-cell-label-container" role="presentation"><span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span><div ref="eLabel" class="ag-header-cell-label" role="presentation"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Le</div></div>' },
     },
     { field: 'routing_sequence', headerName: 'Gamme complète', headerTooltip: 'Séquence des opérations de la gamme', minWidth: 70, wrapText: false, autoHeight: false },
     { field: 'cycle_time_min', headerName: 'Tps unit. (min)', headerTooltip: 'Temps unitaire par pièce en minutes', minWidth: 18, width: 75, cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: '4px', paddingRight: '2px', textAlign: 'left' }, },
@@ -1220,7 +1063,6 @@ async function init() {
       'row-encours':      p => p.data?.status === 'in_progress',
       'row-stop-active':  p => ['arrêt en cours', 'stop_active'].includes(p.data?.status),
       'row-stop-planned': p => ['arrêt programmé', 'stop_planned'].includes(p.data?.status),
-      'saisie-active':    p => p.data?.id != null && p.data.id === window._lockRowId,
     },
 
     // Appelé quand le tableau est prêt et affiché dans le DOM
@@ -1237,7 +1079,7 @@ async function init() {
 
       // Auto-dimensionne toutes les colonnes à la largeur de leur en-tête
       // (sera ensuite ajustable manuellement par l'utilisateur)
-      const TIME_COLS = new Set(["cycle_time_min","prep_time_min","machining_time_min","total_time_min","actual_time_min","final_quantity","final_quantity_ko","operator_id","lunch_overlap","evening_overlap","night_shift","theoretical_end_adjusted"]);
+      const TIME_COLS = new Set(["cycle_time_min","prep_time_min","machining_time_min","total_time_min","actual_time_min","lunch_overlap","evening_overlap","night_shift","theoretical_end_adjusted"]);
       setTimeout(() => {
         try {
           const colIds = params.api.getColumns().map(c => c.getColId()).filter(id => !TIME_COLS.has(id));
@@ -1250,8 +1092,6 @@ async function init() {
 
       // ── POLLING 60s : recharge les données sans perturber une saisie en cours ──
       setInterval(() => {
-        // Ne pas recharger si une saisie partielle est en cours (lockRow actif)
-        if (window._lockRowId != null) return;
         loadData(params.api);
       }, 60000);
 
@@ -1357,16 +1197,7 @@ async function init() {
     // Appelé quand l'utilisateur modifie une cellule éditable
     // Envoie le changement à Supabase immédiatement
     onCellValueChanged: async params => {
-      await patchRow(params.data.id, params.colDef.field, params.newValue);
-      if (['actual_end','final_quantity','final_quantity_ko','operator_id'].includes(params.colDef.field)) {
-        updateSaisielock(params.api, params.data);
-      }
-    },
-    // Déclencher aussi à la fin d'édition (même si valeur identique)
-    onCellEditingStopped: params => {
-      if (['actual_end','final_quantity','final_quantity_ko','operator_id'].includes(params.colDef.field)) {
-        updateSaisielock(params.api, params.data);
-      }
+      await patchRow(params.data.id, effField(params.colDef.field, params.data), params.newValue);
     },
   };
 
@@ -1525,9 +1356,9 @@ function initZoom() {
 (function() {
   const PROTECTED = new Set([
     'order_number','reference','wo_split_quantity','initial_quantity','internal_lot','status',
-    'theoretical_start','theoretical_end','theoretical_end_adjusted','is_locked','locked_by','locked_at',
-    'seq_num','actual_start','actual_end','final_quantity','final_quantity_ko',
-    'final_comment','operator_id','closed_at'
+    'theoretical_start','theoretical_end','theoretical_end_adjusted',
+    'seq_num','actual_start','actual_end',
+    'final_comment','closed_at'
   ]);
 
   // Colonnes ARRET : retirées du menu d'ajout (réintégration prévue plus tard)
